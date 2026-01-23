@@ -1,7 +1,6 @@
 [dependencies]
-basic_loops = "1.0.1"
-test = "2.0.7"
+test = "19.21.67"
 
 [package]
-name = "using_packages"
-version = "1.0.0"
+name = "test"
+version = "1"
