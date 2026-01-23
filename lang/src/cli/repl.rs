@@ -1,7 +1,5 @@
 use crate::utils;
 use crate::parser::parse;
-use bat::PrettyPrinter;
-use bat::line_range::{LineRanges, LineRange};
 
 use std::io::Write;
 
