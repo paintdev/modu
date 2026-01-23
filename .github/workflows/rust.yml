@@ -46,7 +46,6 @@ jobs:
         mkdir -p artifacts
         cp lang/target/x86_64-pc-windows-gnu/release/modu.exe artifacts/modu.exe
         cp lang/target/release/modu artifacts/modu-linux
-        cp lang/target/aarch64-apple-darwin/release/modu artifacts/modu-macos-arm64
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
