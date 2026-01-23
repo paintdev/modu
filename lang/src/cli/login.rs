@@ -71,7 +71,7 @@ pub fn login() {
 
         toml.insert("backend".to_string(), toml::Value::String(backend_url.clone()));        
     } else {
-        backend_url = "https://modu-packages.vercel.app".to_string();
+        backend_url = "https://mpm.cyteon.dev".to_string();
         toml.insert("backend".to_string(), toml::Value::String(backend_url.clone()));
     }
 

@@ -1,10 +1,10 @@
 # Libraries
 Here is how to use, and how to make libraries. \
-The official package repo is https://modu-packages.vercel.app, but you can enter a custom one when doing **modu login**. \
+The official package repo is https://mpm.cyteon.dev, but you can enter a custom one when doing **modu login**. \
 The package repo code is open source at https://github.com/cyteon/modu-packages
 
 ## Using libraries
-Installing libraries is as simple as finding the package on [the official repo](https://modu-packages.vercel.app), or another, list will be at end.
+Installing libraries is as simple as finding the package on [the official repo](https://mpm.cyteon.dev), or another, list will be at end.
 
 1. Initialize a new modu project 
 ```bash
@@ -59,7 +59,6 @@ $ modu publish
 ```
 
 ## Package repos
-https://modu-packages.vercel.app | Owner: [cyteon](https://github.com/cyteon)     - Offical \
-https://modu.gizzy.pro/          | Owner: [GizzyUwU](https://github.com/GizzyUwU) - Unoffical
+https://mpm.cyteon.dev | Owner: [cyteon](https://github.com/cyteon)     - Offical \
 
 Want to list yours? Make a PR to modify [this file](https://github.com/cyteon/modu/blob/main/web/src/lib/docs/libraries.md)
