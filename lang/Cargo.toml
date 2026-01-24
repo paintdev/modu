@@ -1,6 +1,6 @@
 [package]
 name = "modu"
-version = "0.6.2"
+version = "1.0.0"
 edition = "2021"
 repository = "https://github.com/cyteon/modu"
 homepage = "https://modu.cyteon.dev"
