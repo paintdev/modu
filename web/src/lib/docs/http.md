@@ -16,7 +16,21 @@ body        - string
 ```rust
 import "http" as http;
 
-let result = http.get("https://example.com");
+let result = http.get("https://httpbin.org/get");
+print("Status: ", result.status, " - ", result.status_text);
+print("\nHeaders: ", result.headers);
+print("\nBody:\n", result.body);
+```
+
+## Example post request
+```rust
+import "http" as http;
+import "json" as json;
+
+let data = json.new();
+data.set("name", "modu");
+
+let result = http.post("https://httpbin.org/post", json.stringify(data));
 print("Status: ", result.status, " - ", result.status_text);
 print("\nHeaders: ", result.headers);
 print("\nBody:\n", result.body);
