@@ -99,7 +99,7 @@ pub fn install() {
         }
     };
 
-    let mut backend_url = "https://modu-packages.vercel.app".to_string();
+    let mut backend_url = "https://mpm.cyteon.dev".to_string();
 
     let config_file;
     let path;
