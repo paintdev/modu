@@ -8,7 +8,7 @@ print("Status: ", result.status, " - ", result.status_text);
 print("\nHeaders: ", result.headers);
 print("\nBody:\n", result.body);
 
-print("\n\nHTTP POST Request:");
+print("\nHTTP POST Request:");
 
 let data = json.new();
 data.set("name", "modu");
