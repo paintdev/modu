@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::ast::AST;
 use crate::eval::eval;
 
-fn insert_functions(properties: &mut HashMap<String, AST>) -> HashMap<String, AST> {
+pub fn insert_functions(properties: &mut HashMap<String, AST>) -> HashMap<String, AST> {
 	properties.insert(
 		"set".to_string(),
 		AST::InternalFunction {
