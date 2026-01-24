@@ -1,6 +1,20 @@
 import "http" as http;
+import "json" as json;
+
+print("HTTP GET Request:");
 
 let result = http.get("https://example.com");
+print("Status: ", result.status, " - ", result.status_text);
+print("\nHeaders: ", result.headers);
+print("\nBody:\n", result.body);
+
+print("\n\nHTTP POST Request:");
+
+let data = json.new();
+data.set("name", "modu");
+
+let body = json.stringify(data);
+let result = http.post("https://httpbin.org/post", body);
 print("Status: ", result.status, " - ", result.status_text);
 print("\nHeaders: ", result.headers);
 print("\nBody:\n", result.body);

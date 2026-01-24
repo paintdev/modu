@@ -82,10 +82,6 @@ fn make_stuff_string(value: AST) -> String {
 }
 
 pub fn stringify(args: Vec<AST>, context: &mut HashMap<String, AST>) -> Result<(AST, AST), String> {
-	if args.len() != 1 {
-		return Err("json.stringify requires exactly one argument".to_string());
-	}
-
 	let value = eval(args[0].clone(), context)?;
 
 	match value {
