@@ -1619,6 +1619,19 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                     name,
                                     value: Box::new(new_call),
                                     line,
+                                });                                
+                            } else if let AST::PropertyCall { object, property, args, line } = *value {
+                                let new_call = handle_nested_arguments(AST::PropertyCall {
+                                    object,
+                                    property,
+                                    args,
+                                    line,
+                                }, AST::Lparen)?;
+
+                                temp_ast.push(AST::LetDeclaration {
+                                    name,
+                                    value: Box::new(new_call),
+                                    line,
                                 });
                             } else {
                                 return Err(("Expected a function call before '()'".to_string(), current_line));

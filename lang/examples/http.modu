@@ -13,8 +13,7 @@ print("\n\nHTTP POST Request:");
 let data = json.new();
 data.set("name", "modu");
 
-let body = json.stringify(data);
-let result = http.post("https://httpbin.org/post", body);
+let result = http.post("https://httpbin.org/post", json.stringify(data));
 print("Status: ", result.status, " - ", result.status_text);
 print("\nHeaders: ", result.headers);
 print("\nBody:\n", result.body);
