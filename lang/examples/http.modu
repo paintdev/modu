@@ -1,4 +1,6 @@
-import http; // can also be import "http" as http or smth;
+import "http" as http;
 
 let result = http.get("https://example.com")
-print(result)
+print("Status: ", result.status, " - ", result.status_text)
+print("\nHeaders: ", result.headers)
+print("\nBody:\n", result.body)
