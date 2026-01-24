@@ -12,7 +12,7 @@ headers     - object
 body        - string
 ```
 
-## Sending an get request
+## Example get request
 ```rust
 import "http" as http;
 
