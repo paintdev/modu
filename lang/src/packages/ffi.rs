@@ -43,7 +43,7 @@ pub fn call(mut args: Vec<AST>, context: &mut HashMap<String, AST>) -> Result<(A
 
         for arg in args {
             match eval(arg, context) {
-                Ok(AST::Number(_)) => {
+                Ok(AST::Integer(_)) => {
                     //args_ptr.push(v as *mut std::ffi::c_void);
                     return Err("Cant use numbers in ffi, it was extremely broken, to be fixed\nSuggestion: turn int to str with str(int), then parse that to int in the lib".to_string());
                 }
@@ -73,7 +73,7 @@ pub fn call(mut args: Vec<AST>, context: &mut HashMap<String, AST>) -> Result<(A
         };
 
         if (result_ptr as i64) <= i32::MAX as i64 && (result_ptr as i64) >= i32::MIN as i64 {
-            return Ok((AST::Number(result_ptr as i64), AST::Null));
+            return Ok((AST::Integer(result_ptr as i64), AST::Null));
         } else {
             let str = std::ffi::CStr::from_ptr(result_ptr as *const _);
             return Ok((AST::String(str.to_string_lossy().into_owned()), AST::Null))

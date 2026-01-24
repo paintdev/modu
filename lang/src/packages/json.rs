@@ -126,7 +126,7 @@ fn parse_obj(obj: &mut HashMap<String, serde_json::Value>) -> HashMap<String, AS
 				if number.as_i64().is_none() {
 					map.insert(key.clone(), AST::Float(number.as_f64().unwrap()));
 				} else {
-					map.insert(key.clone(), AST::Number(number.as_i64().unwrap()));
+					map.insert(key.clone(), AST::Integer(number.as_i64().unwrap()));
 				}
 			}
 
@@ -344,7 +344,7 @@ mod tests {
 		let object = AST::Object {
 			properties: vec![
 				("key".to_string(), AST::String("value".to_string())),
-				("key2".to_string(), AST::Number(1)),
+				("key2".to_string(), AST::Integer(1)),
 			].iter().cloned().collect(),
 			line: 0,
 		};

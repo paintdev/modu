@@ -17,7 +17,7 @@ pub fn get(args: Vec<AST>, context: &mut HashMap<String, AST>) -> Result<(AST, A
 
                     properties.insert(
                         "status".to_string(),
-                        AST::Number(status.as_u16() as i64)
+                        AST::Integer(status.as_u16() as i64)
                     );
 
                     properties.insert(

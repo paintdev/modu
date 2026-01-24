@@ -71,7 +71,7 @@ pub enum Token {
     Assign,
 
     #[regex("[0-9]+", |lex| lex.slice().parse())]
-    Number(i64),
+    Integer(i64),
 
     #[regex("[0-9]+\\.[0-9]+")]
     Float,
@@ -153,7 +153,7 @@ mod tests {
         assert_eq!(lexer.next(), Some(Ok(Token::Let)));
         assert_eq!(lexer.next(), Some(Ok(Token::Identifer)));
         assert_eq!(lexer.next(), Some(Ok(Token::Assign)));
-        assert_eq!(lexer.next(), Some(Ok(Token::Number(10))));
+        assert_eq!(lexer.next(), Some(Ok(Token::Integer(10))));
     }
 
     #[test]

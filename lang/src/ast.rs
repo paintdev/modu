@@ -118,7 +118,7 @@ pub enum AST {
     },
 
     Identifer(String),
-    Number(i64),
+    Integer(i64),
     String(String),
     Boolean(bool),
     Float(f64),
@@ -154,7 +154,7 @@ impl std::fmt::Display for AST {
                 write!(f, "{}", s)
             },
 
-            AST::Number(n) => write!(f, "{}", n),
+            AST::Integer(n) => write!(f, "{}", n),
             AST::Float(n) => write!(f, "{}", n),
             AST::Boolean(b) => write!(f, "{}", b),
             AST::Null => write!(f, "null"),
