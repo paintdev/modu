@@ -6,4 +6,4 @@ print( div( div( math.mul(5, 2), 2 ), 1 ) );
 print( div( div( math.div(1, 2), div(1, 2) ), div(1, 2) ) );
 print( div( div( div(-1, -2), div(1, 2) ), math.div(1, 2) ) );
 
-print(time.to_local_date_time(math.mul(500, 0)));
+print(time.to_local_date_time(math.mul(time.now(), 0)));

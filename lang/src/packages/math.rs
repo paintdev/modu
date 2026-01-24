@@ -50,8 +50,8 @@ pub fn div(args: Vec<AST>, context: &mut HashMap<String, AST>) -> Result<(AST, A
     }
 }
 
-pub fn mul(args: Vec<AST>, _: &mut HashMap<String, AST>) -> Result<(AST, AST), String> {
-    match (eval(args[0].clone(), &mut HashMap::new()), eval(args[1].clone(), &mut HashMap::new())) {
+pub fn mul(args: Vec<AST>, context: &mut HashMap<String, AST>) -> Result<(AST, AST), String> {
+    match (eval(args[0].clone(), context), eval(args[1].clone(), context)) {
         (Ok(AST::Integer(a)), Ok(AST::Integer(b))) => {
             return Ok((AST::Integer(a * b), AST::Null));
         }
@@ -69,7 +69,7 @@ pub fn mul(args: Vec<AST>, _: &mut HashMap<String, AST>) -> Result<(AST, AST), S
         }
 
         _ => {
-            return Err("mul requires 2 numbers".to_string());
+            return Err(format!("mul requires 2 numbers, got {} and {}", args[0], args[1]));
         }
     }
 }
