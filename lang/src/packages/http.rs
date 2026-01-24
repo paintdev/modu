@@ -98,7 +98,7 @@ pub fn post(args: Vec<AST>, context: &mut HashMap<String, AST>) -> Result<(AST, 
                 Err(e) => return Err(e.to_string()),
             };
         }
-        
+
         _ => Err("http.post() expects a string".to_string())
     }
 }
@@ -270,6 +270,6 @@ mod tests {
     fn get_object_test() {
         let object = get_object();
 
-        assert_eq!(object.len(), 2);
+        assert_eq!(object.len(), 5);
     }
 }
