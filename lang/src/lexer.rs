@@ -70,7 +70,9 @@ pub enum Token {
     #[token("=")]
     Assign,
 
-    #[regex("[0-9]+", |lex| lex.slice().parse())]
+    #[regex("[0-9](?:_?[0-9])*", |lex| {
+        lex.slice().replace("_", "").parse::<i64>()
+    })]
     Integer(i64),
 
     #[regex("[0-9]+\\.[0-9]+")]
