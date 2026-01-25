@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::path::PathBuf;
 use crate::ast::AST;
 use crate::eval::eval;
 
@@ -9,11 +10,27 @@ pub fn call(mut args: Vec<AST>, context: &mut HashMap<String, AST>) -> Result<(A
         return Err("ffi.call requires at least 2 arguments".to_string());
     }
 
-    let path = match eval(args[0].clone(), context) {
-        Ok(AST::String(v)) => v,
+    let mut path: String = std::env::current_dir()
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .to_string() + "/";
 
+    let sys_args = std::env::args().collect::<Vec<String>>();
+
+    if sys_args.len() > 2 {
+        if sys_args[1] == "run" {
+            let file_path = PathBuf::from(&sys_args[2]);
+            let parent = file_path.parent().unwrap();
+            let parent_str = parent.to_str().unwrap();
+            path = parent_str.to_string() + "/";
+        }
+    }
+
+    path += match eval(args[0].clone(), context) {
+        Ok(AST::String(v)) => v,
         _ => return Err("ffi.call first argument must be a string".to_string()),
-    };
+    }.as_str();
 
     let name = match eval(args[1].clone(), context) {
         Ok(AST::String(v)) => v,
