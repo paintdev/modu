@@ -2,5 +2,7 @@
 name = "modu_ffi"
 version = "0.1.0"
 edition = "2024"
+description = "FFI library for modu"
+license = "MIT"
 
 [dependencies]
