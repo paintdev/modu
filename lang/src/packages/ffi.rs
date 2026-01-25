@@ -1,50 +1,21 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 use std::path::PathBuf;
 use crate::ast::AST;
 use crate::eval::eval;
 
 use modu_ffi::{FFIValue, FFIType};
-
 type FFIFunction = unsafe extern "C" fn(i32, *const FFIValue) -> FFIValue;
 
-pub fn call(mut args: Vec<AST>, context: &mut HashMap<String, AST>) -> Result<(AST, AST), String> {
-    // (path_to_lib, function_name, arg1, arg2, ...)
-
-    if args.len() < 2 {
-        return Err("ffi.call requires at least 2 arguments".to_string());
-    }
-
-    let mut path: String = std::env::current_dir()
-        .unwrap()
-        .to_str()
-        .unwrap()
-        .to_string() + "/";
-
-    let sys_args = std::env::args().collect::<Vec<String>>();
-
-    if sys_args.len() > 2 {
-        if sys_args[1] == "run" {
-            let file_path = PathBuf::from(&sys_args[2]);
-            let parent = file_path.parent().unwrap();
-            let parent_str = parent.to_str().unwrap();
-            path = parent_str.to_string() + "/";
-        }
-    }
-
-    path += match eval(args[0].clone(), context) {
-        Ok(AST::String(v)) => v,
-        _ => return Err("ffi.call first argument must be a string".to_string()),
-    }.as_str();
-
-    let name = match eval(args[1].clone(), context) {
-        Ok(AST::String(v)) => v,
-        _ => return Err("ffi.call second argument must be a string".to_string()),
-    };
-
+pub fn execute_ffi_call(
+    lib: Arc<libloading::Library>,
+    name: &str,
+    args: Vec<AST>,
+    context: &mut HashMap<String, AST>,
+) -> Result<AST, String> {
     let mut ffi_args = Vec::<FFIValue>::new();
     let mut owned_strings = Vec::<*mut std::ffi::c_char>::new();
 
-    for arg in args.drain(2..) {
+    for arg in args {
         match eval(arg, context)? {
             AST::Null => ffi_args.push(FFIValue::null()),
             AST::String(v) => {
@@ -63,16 +34,8 @@ pub fn call(mut args: Vec<AST>, context: &mut HashMap<String, AST>) -> Result<(A
     }
 
     unsafe {
-        let lib = match libloading::Library::new(path) {
-            Ok(lib) => lib,
-            Err(e) => return Err(format!("failed to load library: {}", e)),
-        };
-
-        let func: libloading::Symbol<FFIFunction>
-            = match lib.get(name.as_bytes()) {
-                Ok(func) => func,
-                Err(e) => return Err(format!("failed to load function: {}", e)),
-            };
+        let func = lib.get::<FFIFunction>(name.as_bytes())
+            .map_err(|e| format!("failed to load function: {}", e))?;
 
         let result = func(ffi_args.len() as i32, ffi_args.as_ptr());
 
@@ -81,7 +44,7 @@ pub fn call(mut args: Vec<AST>, context: &mut HashMap<String, AST>) -> Result<(A
         }
 
         match result.ty {
-            FFIType::Null => Ok((AST::Null, AST::Null)),
+            FFIType::Null => Ok(AST::Null),
             FFIType::String => {
                 let c_str = std::ffi::CStr::from_ptr(result.value.string);
                 let str_slice = c_str.to_str().unwrap();
@@ -89,26 +52,75 @@ pub fn call(mut args: Vec<AST>, context: &mut HashMap<String, AST>) -> Result<(A
 
                 modu_ffi::ffi_free_string(result.value.string);
 
-                Ok((AST::String(string), AST::Null))
+                Ok(AST::String(string))
             }
-            FFIType::Integer => Ok((AST::Integer(result.value.integer), AST::Null)),
-            FFIType::Float => Ok((AST::Float(result.value.float), AST::Null)),
-            FFIType::Boolean => Ok((AST::Boolean(result.value.boolean), AST::Null)),
+            FFIType::Integer => Ok(AST::Integer(result.value.integer)),
+            FFIType::Float => Ok(AST::Float(result.value.float)),
+            FFIType::Boolean => Ok(AST::Boolean(result.value.boolean)),
         }
+    }
+}
+
+pub fn load(args: Vec<AST>, context: &mut HashMap<String, AST>) -> Result<(AST, AST), String> {
+    if args.is_empty() {
+        return Err("ffi.load requires at least 1 argument".to_string());
+    }
+    
+    let path = match eval(args[0].clone(), context) {
+        Ok(AST::String(v)) => v,
+        _ => return Err("ffi.load first argument must be a string".to_string()),
+    };
+
+    let mut full_path: String = std::env::current_dir()
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .to_string() + "/";
+
+    let args = std::env::args().collect::<Vec<String>>();
+    
+    if args.len() > 2 && args[1] == "run" {
+        let file_path = PathBuf::from(&args[2]);
+        let parent = file_path.parent().unwrap();
+        let parent_str = parent.to_str().unwrap();
+        full_path = parent_str.to_string() + "/";
+    }
+
+    full_path += path.as_str();
+
+    unsafe {
+        let lib = match libloading::Library::new(full_path.clone()) {
+            Ok(lib) => lib,
+            Err(e) => return Err(format!("failed to load library: {}", e)),
+        };
+
+        Ok((AST::FFILibrary { path: full_path, lib: std::sync::Arc::new(lib) }, AST::Null))
     }
 }
 
 pub fn get_object() -> HashMap<String, AST> {
 	let mut object = HashMap::new();
 
-	object.insert(
-        "call".to_string(),
+    object.insert(
+        "load".to_string(),
         AST::InternalFunction {
-            name: "call".to_string(),
+            name: "load".to_string(),
             args: vec!["__args__".to_string()],
-            call_fn: call,
+            call_fn: load,
         }
     );
 
 	object
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn get_object_test() {
+        let object = get_object();
+
+        assert_eq!(object.len(), 1);
+    }
 }

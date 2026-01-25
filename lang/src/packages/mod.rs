@@ -2,7 +2,7 @@ mod math;
 mod file;
 mod time;
 mod os;
-mod ffi;
+pub mod ffi;
 pub mod json;
 pub mod array;
 mod uuid;

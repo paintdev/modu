@@ -1,8 +1,11 @@
 
 use std::collections::HashMap;
+use libloading::Library;
+use std::sync::Arc;
+
 use crate::packages::array;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Clone)]
 pub enum AST {
     LetDeclaration {
         name: Option<String>,
@@ -62,6 +65,11 @@ pub enum AST {
         name: String,
         args: Vec<String>,
         call_fn: fn(Vec<AST>, &mut HashMap<String, AST>) -> Result<(AST, AST), String>,
+    },
+
+    FFILibrary {
+        path: String,
+        lib: Arc<Library>,
     },
 
     Exists {
@@ -216,6 +224,15 @@ impl std::fmt::Display for AST {
             }
 
             _ => write!(f, "{:?}", self),
+        }
+    }
+}
+
+impl PartialEq for AST {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (AST::FFILibrary { path: p1, .. }, AST::FFILibrary { path: p2, .. }) => p1 == p2,
+            _ => std::mem::discriminant(self) == std::mem::discriminant(other),
         }
     }
 }

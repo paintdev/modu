@@ -19,11 +19,12 @@ if os.name == "windows" {
     print("I will remove this message once i add a .dll myself there");
 }
 
-ffi.call(path, "hello_world");
+let lib = ffi.load(path);
 
-print(ffi.call(path, "one"));
+lib.hello_world();
+print(lib.one());
 
-print(ffi.call(path, "add", 5, 2));
-print(ffi.call(path, "string"));
+print(lib.add(2, 5));
+print(lib.string());
 
-ffi.call(path, "print", "test");
+lib.print("test");
