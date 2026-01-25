@@ -9,6 +9,8 @@ if os.name == "linux" {
 
 if os.name == "macos" {
     let path = path + ".dylib";
+    print("This may error out if you have not built ffi_test and put the .dylib in same folder as main.modu!");
+    print("I will remove this message once i add a .dylib myself there");
 }
 
 if os.name == "windows" {
@@ -19,15 +21,9 @@ if os.name == "windows" {
 
 ffi.call(path, "hello_world");
 
-print(ffi.call(path, "a", "5"));
 print(ffi.call(path, "one"));
 
-// due to some arg issues, ffi calls cant accept numbers
-print(ffi.call(path, "add", str(5), str(2)));
+print(ffi.call(path, "add", 5, 2));
 print(ffi.call(path, "string"));
 
 ffi.call(path, "print", "test");
-ffi.call(path, "print2", "test1", " test2");
-
-
-// ffi.call(path, "add", 1, 2, 3); // panic test
