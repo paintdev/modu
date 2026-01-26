@@ -58,11 +58,17 @@ pub enum Token {
     #[token("loop")]
     Loop,
 
+    #[token("for")]
+    For,
+
     #[token("break")]
     Break,
 
     #[token(".")]
     Dot,
+
+    #[token("..")]
+    Range,
 
     #[token("+")]
     Plus,

@@ -1,14 +1,33 @@
 let i = 0;
 
+print("loop: (should print 1-15)\n");
+
 loop {
     let i = i + 1;
 
     if i >= 10 {
         if i > 15 {
-            break; // should print 1-15 then break
+            break;
             print("oh no");
         }
     }
 
+    print(i);
+}
+
+print("\nfor loop: (should print 1-5)\n");
+
+for n = 1..5 {
+    print(n);
+}
+
+print("\nfor loop w/ break: (should print 1-5)\n");
+
+
+for i = 1..100 {
+    if i > 5 {
+        break;
+    }
+    
     print(i);
 }

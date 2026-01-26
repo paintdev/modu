@@ -153,6 +153,57 @@ pub fn insert_right_bracket(obj: AST) -> AST {
                 line,
             };
         }
+        
+        AST::ForLoop { start, end, index_name, body, line } => {
+            let mut new_body = body;
+
+            match new_body.pop().unwrap_or(AST::Null) {
+                AST::IfStatement { condition, body: mut if_body, line: if_line } => {
+                    match if_body.pop().unwrap_or(AST::Null) {
+                        AST::RBracket => {
+                            if_body.push(AST::RBracket);
+
+                            new_body.push(AST::IfStatement {
+                                condition,
+                                body: if_body,
+                                line: if_line,
+                            });
+
+                            new_body.push(AST::RBracket);
+                        }
+
+                        val => {
+                            if_body.push(val);
+                            
+                            let new_if_body = insert_right_bracket(AST::IfStatement {
+                                condition,
+                                body: if_body,
+                                line,
+                            });
+        
+                            new_body.push(new_if_body);
+                        }
+                    }
+                }
+
+                AST::Null => {
+                    new_body.push(AST::RBracket);
+                }
+
+                val => {
+                    new_body.push(val);
+                    new_body.push(AST::RBracket);
+                }
+            }
+
+            return AST::ForLoop {
+                start,
+                end,
+                index_name,
+                body: new_body,
+                line,
+            };
+        }
 
         _ => {
             return obj;
@@ -392,6 +443,87 @@ pub fn handle_nested_ast(mut ast: Vec<AST>, temp_ast: Vec<AST>, current_line: us
             }
 
             ast.push(AST::Loop {
+                body,
+                line,
+            });
+
+            Ok(ast)
+        }
+
+        AST::ForLoop { start, end, index_name, mut body, line } => {
+            if let Some(last_body_expr) = body.pop() {
+                match last_body_expr {
+                    AST::IfStatement { condition, body: mut if_body, line: if_line } => {
+                        match if_body.pop().unwrap_or(AST::Null) {
+                            AST::RBracket => {
+                                if_body.push(AST::RBracket);
+
+                                body.push(AST::IfStatement {
+                                    condition,
+                                    body: if_body,
+                                    line: if_line,
+                                });
+
+                                body.extend(temp_ast);
+                            }
+
+                            AST::Null => {
+                                let updated_body = handle_nested_ast(if_body, temp_ast, current_line)?;
+
+                                body.push(AST::IfStatement {
+                                    condition,
+                                    body: updated_body,
+                                    line: if_line,
+                                });
+                            }
+
+                            val => {
+                                if_body.push(val);
+
+                                let updated_body = handle_nested_ast(if_body, temp_ast, current_line)?;
+
+                                body.push(AST::IfStatement {
+                                    condition,
+                                    body: updated_body,
+                                    line: if_line,
+                                });
+                            }
+                        }
+                    }
+
+                    AST::RBracket => {
+                        body.push(AST::RBracket);
+
+                        ast.push(AST::ForLoop {
+                            start,
+                            end,
+                            index_name,
+                            body,
+                            line,
+                        });
+
+                        ast.extend(temp_ast);
+
+                        return Ok(ast);
+                    }
+
+                    AST::Null => {
+                        body.extend(temp_ast);
+                    }
+
+                    other => {
+                        body.push(other);
+                        body.extend(temp_ast);
+                    }
+                }
+            } else {
+                body.extend(temp_ast);
+            }
+
+            ast.push(AST::ForLoop {
+                start,
+                end,
+                index_name,
                 body,
                 line,
             });
@@ -962,6 +1094,28 @@ pub fn clean_args(obj: AST) -> AST {
             }
         }
 
+        AST::ForLoop { start, end, index_name, body, line } => {
+            let mut new_body = vec![];
+
+            for expr in body {
+                match expr {
+                    AST::RBracket => {}
+
+                    _ => {
+                        new_body.push(clean_args(expr));
+                    }
+                }
+            }
+
+            AST::ForLoop {
+                start,
+                end,
+                index_name,
+                body: new_body,
+                line,
+            }
+        }
+
         AST::Addition { left, right, line } => {
             AST::Addition {
                 left: Box::new(clean_args(*left)),
@@ -1098,8 +1252,44 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                     });
                 }
 
+                Ok(Token::For) => {
+                    temp_ast.push(AST::ForLoop {
+                        start: Box::new(AST::Null),
+                        end: Box::new(AST::Null),
+                        index_name: "".to_string(),
+                        body: Vec::new(),
+                        line: current_line,
+                    });
+                }
+
                 Ok(Token::Break) => {
                     temp_ast.push(AST::Break);
+                }
+
+                Ok(Token::Range) => {
+                    let value = temp_ast.pop().unwrap_or(AST::Null);
+
+                    match value {
+                        AST::Identifer(name) => {
+                            temp_ast.push(AST::Range {
+                                left: Box::new(AST::Identifer(name)),
+                                right: Box::new(AST::Null),
+                                line: current_line,
+                            });
+                        }
+
+                        AST::Integer(n) => {
+                            temp_ast.push(AST::Range {
+                                left: Box::new(AST::Integer(n)),
+                                right: Box::new(AST::Null),
+                                line: current_line,
+                            });
+                        }
+
+                        _ => {
+                            return Err(("Expected an identifer before '..'".to_string(), current_line));
+                        }
+                    }
                 }
 
                 Ok(Token::IsEqual) | Ok(Token::IsUnequal) | Ok(Token::LessThan) | Ok(Token::GreaterThan) | Ok(Token::LessThanOrEqual) | Ok(Token::GreaterThanOrEqual) => {
@@ -1298,9 +1488,9 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                 }
     
                 Ok(Token::Identifer) => {
-                    let value = temp_ast.pop().unwrap_or(AST::Null);
+                    let last = temp_ast.pop().unwrap_or(AST::Null);
                     
-                    match value {
+                    match last {
                         AST::Import { file, as_: _, line } => {
                             temp_ast.push(AST::Import {
                                 file,
@@ -1641,26 +1831,56 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                             }
                         }
 
+                        AST::ForLoop { start, end, index_name, body, line } => {
+                            if index_name.is_empty() {
+                                temp_ast.push(AST::ForLoop {
+                                    start,
+                                    end,
+                                    index_name: lexer.slice().to_string(),
+                                    body,
+                                    line,
+                                });
+                            } else {
+                                return Err(("Unexpected identifier after for loop decleration".to_string(), current_line));
+                            }
+                        }
+
                         _ => {
-                            temp_ast.push(value);
+                            temp_ast.push(last);
                             temp_ast.push(AST::Identifer(lexer.slice().to_string()));
                         }
                     }
                 }
     
                 Ok(Token::Assign) => {
-                    if let Some(AST::LetDeclaration { name, value, line }) = temp_ast.pop() {                    
-                        if AST::Null == *value {
-                            temp_ast.push(AST::LetDeclaration {
-                                name,
-                                value: Box::new(AST::Null),
+                    let last = temp_ast.pop().unwrap_or(AST::Null);
+
+                    match last {
+                        AST::LetDeclaration { name, value, line } => {
+                            if AST::Null == *value {
+                                temp_ast.push(AST::LetDeclaration {
+                                    name,
+                                    value: Box::new(AST::Null),
+                                    line,
+                                });
+                            } else {
+                                return Err(("Unexpected '='".to_string(), current_line));
+                            }
+                        }
+
+                        AST::ForLoop { start, end, index_name, body, line } => {
+                            temp_ast.push(AST::ForLoop {
+                                start,
+                                end,
+                                index_name,
+                                body,
                                 line,
                             });
-                        } else {
-                            return Err(("Unexpected '='".to_string(), current_line));
                         }
-                    } else {
-                        return Err(("Expected a let declaration before '='".to_string(), current_line));
+
+                        _ => {
+                            return Err(("Expected a declaration before '='".to_string(), current_line));
+                        }
                     }
                 }
 
@@ -2669,12 +2889,38 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                     line,
                                 });
                             } else {
-                                return Err(("Unexpected number after 'return'".to_string(), current_line));
+                                return Err(("Unexpected integer after 'return'".to_string(), current_line));
+                            }
+                        }
+
+                        AST::ForLoop { start: _, end: _, index_name: _, body: _, line: _ } => {
+                            temp_ast.push(value);
+                            temp_ast.push(AST::Integer(n));
+                        }
+
+                        // this closes the range, so we can add it to the loop
+                        AST::Range { left, right: _, line } => {
+                            let last = temp_ast.pop().unwrap_or(AST::Null);
+
+                            match last {
+                                AST::ForLoop { start: _, end: _, index_name, body, line: loop_line } => {
+                                    temp_ast.push(AST::ForLoop {
+                                        start: left,
+                                        end: Box::new(AST::Integer(n)),
+                                        index_name,
+                                        body,
+                                        line: loop_line,
+                                    });
+                                }
+
+                                _ => {
+                                    return Err((format!("Unexpected value before range end: {:?}", last), current_line));
+                                }
                             }
                         }
 
                         _ => {
-                            return Err((format!("Expected a call or let declaration before a number, got {:?}", value), current_line));
+                            return Err((format!("Unexpected value before integer: {:?}", value), current_line));
                         }
                     }
                 }
@@ -3022,7 +3268,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                         }
 
                         _ => {
-                            return Err(("Expected a call or let declaration before a float".to_string(), current_line));
+                            return Err((format!("Unexpected value before float: {:?}", value), current_line));
                         }
                     }
                 }
@@ -3109,6 +3355,19 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                             body_starts = true;
                         }
 
+                        AST::ForLoop { start, end, index_name, body, line } => {
+                            temp_ast.push(AST::ForLoop {
+                                start,
+                                end,
+                                index_name,
+                                body,
+                                line,
+                            });
+
+                            bodies_deep += 1;
+                            body_starts = true;
+                        }
+
                         AST::Identifer(name) => {
                             match temp_ast.pop() {
                                 Some(AST::IfStatement { condition: _, body, line }) => {
@@ -3136,9 +3395,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                         }
 
                         v => {
-                            dbg!(v);
-                            dbg!(&temp_ast);
-                            return Err(("Expected a function or if statement before '{'".to_string(), current_line));
+                            return Err((format!("Unexpected value before '{{': {:?}", v), current_line));
                         }
                     }
                 }
@@ -3177,8 +3434,20 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                             ast.push(new_obj);
                         }
 
+                        AST::ForLoop { start, end, index_name, body, line } => {
+                            let new_obj = insert_right_bracket(AST::ForLoop {
+                                start,
+                                end,
+                                index_name,
+                                body,
+                                line,
+                            });
+
+                            ast.push(new_obj);
+                        }
+
                         _ => {
-                            return Err(("Expected a function or if statement before '}'".to_string(), current_line));
+                            return Err((format!("Unexpected value before '}}': {:?}", value), current_line));
                         }
                     }
 
@@ -3289,8 +3558,15 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                 }
             }
 
-            AST::Semicolon => {}
-            AST::Null => {}
+            AST::ForLoop { start, end, index_name, body, line } => {
+                let cleaned_obj = clean_args(AST::ForLoop { start, end, index_name, body, line });
+
+                let result = eval(cleaned_obj, context);
+
+                if result.is_err() {
+                    return Err((result.err().unwrap(), line));
+                }
+            }
 
             AST::Identifer(name) => {
                 let result = eval(AST::Identifer(name), context);
@@ -3312,10 +3588,11 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                 print_res(result.unwrap());
             }
 
+            AST::Semicolon => {}
+            AST::Null => {}
+
             _ => {
-                if verbose {
-                    println!("I'm not sure what to do with a {:?}", item);
-                }
+                println!("⚠️ Unhandled AST node in parser eval: {:?}", item);
             }
         }
     }

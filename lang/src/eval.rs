@@ -344,6 +344,36 @@ pub fn eval(expr: AST, context: &mut HashMap<String, AST>) -> Result<AST, String
             }
         }
 
+        AST::ForLoop { start, end, index_name, body, line } => {
+            let start_val = match eval(*start, context)? {
+                AST::Integer(i) => i,
+                _ => {
+                    return Err("For loop start value must be an integer".to_string());
+                }
+            };
+
+            let end_val = match eval(*end, context)? {
+                AST::Integer(i) => i,
+                _ => {
+                    return Err("For loop end value must be an integer".to_string());
+                }
+            };
+
+            'outer: for i in start_val..=end_val {
+                context.insert(index_name.clone(), AST::Integer(i));
+
+                for expr in &body {
+                    let result = eval(expr.clone(), context)?;
+
+                    if let AST::Break = result {
+                        break 'outer;
+                    }
+                }
+            }
+
+            context.remove(&index_name);
+        }
+
         AST::IsEqual { left, right, line: _ } => {
             match (eval(*left, context)?, eval(*right, context)?) {
                 (AST::Integer(l), AST::Integer(r)) => {

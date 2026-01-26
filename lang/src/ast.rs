@@ -77,6 +77,21 @@ pub enum AST {
         line: usize,
     },
 
+    ForLoop {
+        start: Box<AST>, // x in x..y
+        end: Box<AST>, // y in x..y
+        index_name: String, // n like in "for n = 1..10"
+        body: Vec<AST>,
+        line: usize,
+    },
+
+    // x..y, for loops
+    Range {
+        left: Box<AST>,
+        right: Box<AST>,
+        line: usize,
+    },
+
     Exists {
         value: Box<AST>,
         line: usize,
