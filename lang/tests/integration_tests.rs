@@ -44,3 +44,8 @@ fn file_reading() {
 fn http_requests() {
     run_test("http");
 }
+
+#[test]
+fn loops() {
+    run_test("loops");
+}
