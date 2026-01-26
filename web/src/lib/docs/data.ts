@@ -1,4 +1,4 @@
-import { Home, Baseline, File, FileBox, Equal, Server, Library, AppWindowIcon, Box, Braces, Wifi } from "lucide-svelte"
+import { Home, Baseline, File, FileBox, Equal, Server, Library, AppWindowIcon, Box, Braces, Wifi, Repeat2 } from "lucide-svelte"
 
 export default {
     pages: [
@@ -51,6 +51,11 @@ export default {
             "path": "http",
             "title": "HTTP",
             "icon": Wifi,
+        },
+        {
+            "path": "loops",
+            "title": "Loops",
+            "icon": Repeat2,
         },
         {
             "path": "server",
