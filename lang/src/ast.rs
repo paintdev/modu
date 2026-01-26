@@ -77,10 +77,6 @@ pub enum AST {
         line: usize,
     },
 
-    Break {
-        line: usize,
-    },
-
     Exists {
         value: Box<AST>,
         line: usize,
@@ -148,6 +144,7 @@ pub enum AST {
     Dot,
     Minus,
     Plus,
+    Break,
 }
 
 

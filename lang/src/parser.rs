@@ -1099,9 +1099,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                 }
 
                 Ok(Token::Break) => {
-                    temp_ast.push(AST::Break {
-                        line: current_line,
-                    });
+                    temp_ast.push(AST::Break);
                 }
 
                 Ok(Token::IsEqual) | Ok(Token::IsUnequal) | Ok(Token::LessThan) | Ok(Token::GreaterThan) | Ok(Token::LessThanOrEqual) | Ok(Token::GreaterThanOrEqual) => {

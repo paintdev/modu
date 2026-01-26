@@ -328,8 +328,8 @@ pub fn eval(expr: AST, context: &mut HashMap<String, AST>) -> Result<AST, String
             }
         }
 
-        AST::Break { line: _ } => {
-            return Ok(AST::Break { line: 0 });
+        AST::Break => {
+            return Ok(AST::Break);
         }
 
         AST::Loop { body, line } => {
@@ -337,7 +337,7 @@ pub fn eval(expr: AST, context: &mut HashMap<String, AST>) -> Result<AST, String
                 for expr in &body {
                     let result = eval(expr.clone(), context)?;
 
-                    if let AST::Break { line: _ } = result {
+                    if let AST::Break = result {
                         break 'outer;
                     }
                 }
@@ -481,8 +481,8 @@ pub fn eval(expr: AST, context: &mut HashMap<String, AST>) -> Result<AST, String
 
                             if let AST::Return { value, line: _ } = result {
                                 return Ok(*value);
-                            } else if let AST::Break { line } = result {
-                                return Ok(AST::Break { line });
+                            } else if let AST::Break = result {
+                                return Ok(AST::Break);
                             }
                         }
                     }
