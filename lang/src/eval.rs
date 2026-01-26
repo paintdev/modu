@@ -328,6 +328,22 @@ pub fn eval(expr: AST, context: &mut HashMap<String, AST>) -> Result<AST, String
             }
         }
 
+        AST::Break { line: _ } => {
+            return Ok(AST::Break { line: 0 });
+        }
+
+        AST::Loop { body, line } => {
+            'outer: loop {
+                for expr in &body {
+                    let result = eval(expr.clone(), context)?;
+
+                    if let AST::Break { line: _ } = result {
+                        break 'outer;
+                    }
+                }
+            }
+        }
+
         AST::IsEqual { left, right, line: _ } => {
             match (eval(*left, context)?, eval(*right, context)?) {
                 (AST::Integer(l), AST::Integer(r)) => {
@@ -461,11 +477,13 @@ pub fn eval(expr: AST, context: &mut HashMap<String, AST>) -> Result<AST, String
                 AST::Boolean(b) => {
                     if b {
                         for expr in body {
-                            if let AST::Return { value, line } = expr {
-                                return Ok(AST::Return { value, line });
-                            }
+                            let result = eval(expr, context)?;
 
-                            eval(expr, context)?;
+                            if let AST::Return { value, line: _ } = result {
+                                return Ok(*value);
+                            } else if let AST::Break { line } = result {
+                                return Ok(AST::Break { line });
+                            }
                         }
                     }
                 }

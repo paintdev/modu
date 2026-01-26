@@ -18,7 +18,7 @@
 		"keywords": {
 			"patterns": [{
 				"name": "keyword.control.modu",
-				"match": "\\b(if|fn|let|import|as|return)\\b"
+				"match": "\\b(if|fn|let|import|as|return|loop|break)\\b"
 			}]
 		},
 

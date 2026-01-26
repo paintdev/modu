@@ -72,6 +72,15 @@ pub enum AST {
         lib: Arc<Library>,
     },
 
+    Loop {
+        body: Vec<AST>,
+        line: usize,
+    },
+
+    Break {
+        line: usize,
+    },
+
     Exists {
         value: Box<AST>,
         line: usize,

@@ -1,0 +1,14 @@
+let i = 0;
+
+loop {
+    let i = i + 1;
+
+    if i >= 10 {
+        if i > 15 {
+            break; // should print 1-15 then break
+            print("oh no");
+        }
+    }
+
+    print(i);
+}

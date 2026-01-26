@@ -105,6 +105,55 @@ pub fn insert_right_bracket(obj: AST) -> AST {
             };
         }
 
+        AST::Loop { body, line } => {
+            let mut new_body = body;
+
+            match new_body.pop().unwrap_or(AST::Null) {
+                AST::IfStatement { condition, body: mut if_body, line: if_line } => {
+                    match if_body.pop().unwrap_or(AST::Null) {
+                        AST::RBracket => {
+                            if_body.push(AST::RBracket);
+
+                            new_body.push(AST::IfStatement {
+                                condition,
+                                body: if_body,
+                                line: if_line,
+                            });
+
+                            new_body.push(AST::RBracket);
+                        }
+
+                        val => {
+                            if_body.push(val);
+                            
+                            let new_if_body = insert_right_bracket(AST::IfStatement {
+                                condition,
+                                body: if_body,
+                                line,
+                            });
+        
+                            new_body.push(new_if_body);
+                        }
+                    }
+                }
+
+                AST::Null => {
+                    new_body.push(AST::RBracket);
+                }
+
+                val => {
+                    new_body.push(val);
+
+                    new_body.push(AST::RBracket);
+                }
+            }
+
+            return AST::Loop {
+                body: new_body,
+                line,
+            };
+        }
+
         _ => {
             return obj;
         }
@@ -268,6 +317,81 @@ pub fn handle_nested_ast(mut ast: Vec<AST>, temp_ast: Vec<AST>, current_line: us
 
             ast.push(AST::IfStatement {
                 condition,
+                body,
+                line,
+            });
+
+            Ok(ast)
+        }
+
+        AST::Loop { mut body, line } => {
+            if let Some(last_body_expr) = body.pop() {
+                match last_body_expr {
+                    AST::IfStatement { condition, body: mut if_body, line: if_line } => {
+                        match if_body.pop().unwrap_or(AST::Null) {
+                            AST::RBracket => {
+                                if_body.push(AST::RBracket);
+
+                                body.push(AST::IfStatement {
+                                    condition,
+                                    body: if_body,
+                                    line: if_line,
+                                });
+
+                                body.extend(temp_ast);
+                            }
+
+                            AST::Null => {
+                                let updated_body = handle_nested_ast(if_body, temp_ast, current_line)?;
+
+                                body.push(AST::IfStatement {
+                                    condition,
+                                    body: updated_body,
+                                    line: if_line,
+                                });
+                            }
+
+                            val => {
+                                if_body.push(val);
+
+                                let updated_body = handle_nested_ast(if_body, temp_ast, current_line)?;
+
+                                body.push(AST::IfStatement {
+                                    condition,
+                                    body: updated_body,
+                                    line: if_line,
+                                });
+                            }
+                        }
+                    }
+
+                    AST::RBracket => {
+                        body.push(AST::RBracket);
+
+                        ast.push(AST::Loop {
+                            body,
+                            line,
+                        });
+
+                        ast.extend(temp_ast);
+
+                        return Ok(ast);
+                    }
+
+                    AST::Null => {
+                        body.extend(temp_ast);
+                    }
+
+                    other => {
+                        body.push(other);
+                        body.extend(temp_ast);
+                    }
+                }
+            } else {
+                body.extend(temp_ast);
+            }
+
+            ast.push(AST::Loop {
                 body,
                 line,
             });
@@ -819,6 +943,25 @@ pub fn clean_args(obj: AST) -> AST {
             }
         }
 
+        AST::Loop { body, line } => {
+            let mut new_body = vec![];
+
+            for expr in body {
+                match expr {
+                    AST::RBracket => {}
+
+                    _ => {
+                        new_body.push(clean_args(expr));
+                    }
+                }
+            }
+
+            AST::Loop {
+                body: new_body,
+                line,
+            }
+        }
+
         AST::Addition { left, right, line } => {
             AST::Addition {
                 left: Box::new(clean_args(*left)),
@@ -944,6 +1087,19 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                     temp_ast.push(AST::IfStatement {
                         condition: Box::new(AST::Null),
                         body: Vec::new(),
+                        line: current_line,
+                    });
+                }
+
+                Ok(Token::Loop) => {
+                    temp_ast.push(AST::Loop {
+                        body: Vec::new(),
+                        line: current_line,
+                    });
+                }
+
+                Ok(Token::Break) => {
+                    temp_ast.push(AST::Break {
                         line: current_line,
                     });
                 }
@@ -2945,6 +3101,16 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                             body_starts = true;
                         }
 
+                        AST::Loop { body, line } => {
+                            temp_ast.push(AST::Loop {
+                                body,
+                                line,
+                            });
+
+                            bodies_deep += 1;
+                            body_starts = true;
+                        }
+
                         AST::Identifer(name) => {
                             match temp_ast.pop() {
                                 Some(AST::IfStatement { condition: _, body, line }) => {
@@ -2961,7 +3127,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                     body_starts = true;
                                 }
 
-                                Some(_) => {
+                                Some(v) => {
                                     return Err(("Expected an if statement before '{'".to_string(), current_line));
                                 }
 
@@ -2971,7 +3137,9 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                             }
                         }
 
-                        _ => {
+                        v => {
+                            dbg!(v);
+                            dbg!(&temp_ast);
                             return Err(("Expected a function or if statement before '{'".to_string(), current_line));
                         }
                     }
@@ -2995,6 +3163,15 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                         AST::IfStatement { condition, body, line } => {
                             let new_obj = insert_right_bracket(AST::IfStatement {
                                 condition,
+                                body,
+                                line,
+                            });
+
+                            ast.push(new_obj);
+                        }
+
+                        AST::Loop { body, line } => {
+                            let new_obj = insert_right_bracket(AST::Loop {
                                 body,
                                 line,
                             });
@@ -3096,6 +3273,16 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
 
             AST::IfStatement { condition, body, line } => {
                 let cleaned_obj = clean_args(AST::IfStatement { condition, body, line });
+
+                let result = eval(cleaned_obj, context);
+
+                if result.is_err() {
+                    return Err((result.err().unwrap(), line));
+                }
+            }
+
+            AST::Loop { body, line } => {
+                let cleaned_obj = clean_args(AST::Loop { body, line });
 
                 let result = eval(cleaned_obj, context);
 
