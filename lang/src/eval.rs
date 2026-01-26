@@ -347,15 +347,15 @@ pub fn eval(expr: AST, context: &mut HashMap<String, AST>) -> Result<AST, String
         AST::ForLoop { start, end, index_name, body, line } => {
             let start_val = match eval(*start, context)? {
                 AST::Integer(i) => i,
-                _ => {
-                    return Err("For loop start value must be an integer".to_string());
+                v => {
+                    return Err(format!("For loop start value must be an integer, got {:?}", v));
                 }
             };
 
             let end_val = match eval(*end, context)? {
                 AST::Integer(i) => i,
-                _ => {
-                    return Err("For loop end value must be an integer".to_string());
+                v => {
+                    return Err(format!("For loop end value must be an integer, got {:?}", v));
                 }
             };
 

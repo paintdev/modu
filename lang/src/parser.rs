@@ -1840,8 +1840,40 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                     body,
                                     line,
                                 });
+                            } else if let AST::Null = *start {
+                                temp_ast.push(AST::ForLoop {
+                                    start,
+                                    end,
+                                    index_name,
+                                    body,
+                                    line,
+                                });
+
+                                temp_ast.push(AST::Identifer(lexer.slice().to_string()));
+                            }
+                        }
+
+                        AST::Range { left, right, line } => {
+                            if let AST::Null = *right {
+                                let last = temp_ast.pop().unwrap_or(AST::Null);
+
+                                match last {
+                                    AST::ForLoop { start, end: _, index_name, body, line: for_line } => {
+                                        temp_ast.push(AST::ForLoop {
+                                            start: left,
+                                            end: Box::new(AST::Identifer(lexer.slice().to_string())),
+                                            index_name,
+                                            body,
+                                            line: for_line,
+                                        });
+                                    }
+
+                                    _ => {
+                                        return Err(("Expected a for loop before range end".to_string(), current_line));
+                                    }
+                                }
                             } else {
-                                return Err(("Unexpected identifier after for loop decleration".to_string(), current_line));
+                                return Err(("Unexpected identifier after '..'".to_string(), current_line));
                             }
                         }
 

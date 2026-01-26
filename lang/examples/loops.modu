@@ -31,3 +31,12 @@ for i = 1..100 {
     
     print(i);
 }
+
+print("\nfor loop using vars in range: (should print 1-5)\n");
+
+let start = 1;
+let end = 5;
+
+for n = 1..end {
+    print(n);
+}
