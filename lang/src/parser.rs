@@ -3789,7 +3789,7 @@ mod tests {
     #[test]
     fn read_file() {
         let mut context = crate::utils::create_context();
-        let result = parse("import \"file\" as f\nprint(f.read(\"input.modu\"))", &mut context);
+        let result = parse("import \"file\" as f\nprint(f.read(\"examples/time.modu\"))", &mut context);
 
         assert_eq!(result, Ok(()));
     }
@@ -3797,7 +3797,7 @@ mod tests {
     #[test]
     fn read_file_to_var() {
         let mut context = crate::utils::create_context();
-        let result = parse("import \"file\" as f\nlet x = f.read(\"input.modu\")\nprint(x)", &mut context);
+        let result = parse("import \"file\" as f\nlet x = f.read(\"examples/time.modu\")\nprint(x)", &mut context);
 
         assert_eq!(result, Ok(()));
     }
@@ -3805,7 +3805,7 @@ mod tests {
     #[test]
     fn read_file_import_with_asterisk() {
         let mut context = crate::utils::create_context();
-        let result = parse("import \"file\" as *\nprint(read(\"input.modu\"))", &mut context);
+        let result = parse("import \"file\" as *\nprint(read(\"examples/time.modu\"))", &mut context);
 
         assert_eq!(result, Ok(()));
     }
