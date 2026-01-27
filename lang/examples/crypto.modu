@@ -1,0 +1,7 @@
+import "crypto" as crypto;
+
+let string = input("String to encode: ");
+print("Base64: ", crypto.base64_encode(string));
+
+let base64 = input("\nBase64 to decode: ");
+print("Decoded: ", crypto.base64_decode(base64));

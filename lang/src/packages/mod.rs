@@ -7,6 +7,7 @@ pub mod json;
 pub mod array;
 mod uuid;
 mod http;
+mod crypto;
 
 use crate::ast::AST;
 
@@ -93,6 +94,11 @@ pub fn get_package(name: &str) -> Option<AST> {
 				line: 0,
 			})
 		}
+
+		"crypto" => Some(AST::Object {
+			properties: crypto::get_object(),
+			line: 0,
+		}),
 
 		_ => None
 	}
