@@ -1,17 +1,17 @@
-import "base64" as base64;
+import "encoding" as encoding;
 import "crypto" as crypto;
 
 let string = input("String to encode: ");
-print("Base64: ", base64.encode(string));
+print("Base64: ", encoding.base64_encode(string));
 print("SHA-256: ", crypto.sha256(string));
 print("SHA-512: ", crypto.sha512(string));
 print("BLAKE3: ", crypto.blake3(string));
 print("Bcrypt: ", crypto.bcrypt_hash(string));
 print("Argon2: ", crypto.argon2_hash(string));
-print("Scrypt: ", crypto.scrypt_hash(string));
+// print("Scrypt: ", crypto.scrypt_hash(string)); // too slow
 
 let encoded = input("\nBase64 to decode: ");
-print("Decoded: ", base64.decode(encoded));
+print("Decoded: ", encoding.base64_decode(encoded));
 
 let hash = input("\nEnter bcrypt hash: ");
 let password = input("Enter password to verify: ");
@@ -25,6 +25,8 @@ if result == false {
 if result == true {
     print("password is valid");
 }
+
+/* too slow
 
 let hash = input("\nEnter argon2 hash: ");
 let password = input("Enter password to verify: ");
@@ -51,3 +53,5 @@ if result == false {
 if result == true {
     print("password is valid");
 }
+
+*/

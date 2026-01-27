@@ -7,7 +7,7 @@ pub mod json;
 pub mod array;
 mod uuid;
 mod http;
-mod base64;
+mod encoding;
 mod crypto;
 
 use crate::ast::AST;
@@ -96,8 +96,8 @@ pub fn get_package(name: &str) -> Option<AST> {
 			})
 		}
 
-		"base64" => Some(AST::Object {
-			properties: base64::get_object(),
+		"encoding" => Some(AST::Object {
+			properties: encoding::get_object(),
 			line: 0,
 		}),
 
