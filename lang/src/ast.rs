@@ -3,8 +3,6 @@ use std::collections::HashMap;
 use libloading::Library;
 use std::sync::Arc;
 
-use crate::packages::array;
-
 #[derive(Debug, Clone)]
 pub enum AST {
     LetDeclaration {
@@ -27,6 +25,11 @@ pub enum AST {
 
     Object {
         properties: HashMap<String, AST>,
+        line: usize,
+    },
+
+    Array {
+        elements: Vec<AST>,
         line: usize,
     },
 
@@ -189,27 +192,6 @@ impl std::fmt::Display for AST {
             AST::Null => write!(f, "null"),
 
             AST::Object { properties, line: _ } => {
-                if properties.contains_key(array::IDENTITY) && properties[array::IDENTITY].clone() == AST::String("array".to_string()) {
-                    write!(f, "[")?;
-
-                    let mut str = String::new();
-                    
-
-                    for i in 0..properties.len() {
-                        if properties.contains_key(&format!("{}", i)) {
-                            str.push_str(&format!("{}, ", properties[&format!("{}", i)]));
-                        }
-                    }
-
-                    if str.len() > 0 {
-                        write!(f, "{}", &str[..str.len() - 2])?;
-                    }
-
-                    write!(f, "]")?;
-
-                    return Ok(());
-                }
-
                 write!(f, "{{ ")?;
 
                 if properties.len() as i32 - crate::packages::json::BUILTINS.len() as i32 == 0 {
@@ -241,6 +223,32 @@ impl std::fmt::Display for AST {
                     write!(f, " }}")?;
                 }
                 
+                Ok(())
+            }
+
+            AST::Array { elements, line } => {
+                write!(f, "[")?;
+
+                let mut str = String::new();
+
+                for element in elements {
+                    match element {
+                        AST::String(s) => {
+                            str.push_str(&format!("\"{}\", ", s.replace("\"", "\\\"").replace("\n", "\\n").replace("\t", "\\t")));
+                        }
+
+                        _ => {
+                            str.push_str(&format!("{}, ", element));
+                        }
+                    }
+                }
+
+                if str.len() > 0 {
+                    write!(f, "{}", &str[..str.len() - 2])?;
+                }
+
+                write!(f, "]")?;
+
                 Ok(())
             }
 

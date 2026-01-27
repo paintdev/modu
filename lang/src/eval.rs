@@ -652,6 +652,16 @@ pub fn eval(expr: AST, context: &mut HashMap<String, AST>) -> Result<AST, String
             return Ok(*value);
         }
 
+        AST::Array { elements, line: _ } => {
+            let mut evaluated_elements: Vec<AST> = vec![];
+
+            for element in elements {
+                evaluated_elements.push(eval(element, context)?);
+            }
+
+            return Ok(AST::Array { elements: evaluated_elements, line: 0 });
+        }
+
         _ => {
             return Err(format!("Unknown expression, got {:?}", expr));
         }

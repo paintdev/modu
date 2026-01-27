@@ -1,20 +1,4 @@
-import "array" as array;
+let a = "a";
 
-let a = array.new();
-print(a);
-
-a.push(1);
-a.push(true);
-a.push("hello");
-print(a);
-
-a.pop();
-print(a.shift());
-
-print(a);
-
-print(a.length);
-print(a.at(0));
-a.unshift(12345);
-print(a);
-print(a.at(0));
+let array = [a, 1, 1.5, true, null];
+print("Array: ", array);

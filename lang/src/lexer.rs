@@ -108,6 +108,12 @@ pub enum Token {
     #[token("}")]
     RBracket,
 
+    #[token("[")]
+    LSquareBracket,
+
+    #[token("]")]
+    RSquareBracket,
+
     #[token("==")]
     IsEqual,
 
