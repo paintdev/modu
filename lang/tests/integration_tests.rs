@@ -49,3 +49,13 @@ fn http_requests() {
 fn loops() {
     run_test("loops");
 }
+
+#[test]
+fn encoding() {
+    run_test("encoding");
+}
+
+#[test]
+fn crypto() {
+    run_test("crypto");
+}

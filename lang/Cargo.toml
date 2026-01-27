@@ -1,6 +1,6 @@
 [package]
 name = "modu"
-version = "1.1.1"
+version = "1.2.0"
 edition = "2024"
 repository = "https://github.com/cyteon/modu"
 homepage = "https://modu.cyteon.dev"
@@ -26,6 +26,13 @@ openssl = { version = "0.10", features = ["vendored"] }
 uuid = { version = "1.13.1", features = ["v4"]}
 serde = { version = "1.0.228", features = ["derive"] }
 modu_ffi = "1.0.1"
+base64 = "0.22.1"
+sha2 = "0.10.9"
+blake3 = "1.8.3"
+bcrypt = "0.18.0"
+argon2 = "0.5.3"
+scrypt = "0.11.0"
+base16 = "0.2.1"
 
 [dev-dependencies]
 assert_cmd = "2.1.2"

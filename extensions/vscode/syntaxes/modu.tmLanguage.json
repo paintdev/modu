@@ -2,17 +2,17 @@
 	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
 	"name": "Modu",
 	"patterns": [
+		{ "include": "#comment" },
+		{ "include": "#multiline-comment" },
 		{ "include": "#keywords" },
 		{ "include": "#strings" },
 		{ "include": "#function" },
 		{ "include": "#number" },
 		{ "include": "#operators" },
 		{ "include": "#semicolon" },
-		{ "include": "#comment" },
-		{ "include": "#multiline-comment" },
 		{ "include": "#null" },
-		{ "include": "#variable" },
-		{ "include": "#boolean" }
+		{ "include": "#boolean" },
+		{ "include": "#variable" }
 	],
 	"repository": {
 		"keywords": {
