@@ -11,8 +11,8 @@
 		{ "include": "#comment" },
 		{ "include": "#multiline-comment" },
 		{ "include": "#null" },
-		{ "include": "#variable" },
-		{ "include": "#boolean" }
+		{ "include": "#boolean" },
+		{ "include": "#variable" }
 	],
 	"repository": {
 		"keywords": {
