@@ -179,7 +179,7 @@ mod tests {
     }
 
     #[test]
-    fn asing_str() {
+    fn asign_str() {
         let mut lexer = Token::lexer("let x = \"test\"");
         assert_eq!(lexer.next(), Some(Ok(Token::Let)));
         assert_eq!(lexer.next(), Some(Ok(Token::Identifer("x".to_string()))));
@@ -188,7 +188,7 @@ mod tests {
     }
 
     #[test]
-    fn asing_number() {
+    fn asign_number() {
         let mut lexer = Token::lexer("let x = 10");
         assert_eq!(lexer.next(), Some(Ok(Token::Let)));
         assert_eq!(lexer.next(), Some(Ok(Token::Identifer("x".to_string()))));
@@ -197,7 +197,7 @@ mod tests {
     }
 
     #[test]
-    fn asing_boolean() {
+    fn asign_boolean() {
         let mut lexer = Token::lexer("let x = true");
         assert_eq!(lexer.next(), Some(Ok(Token::Let)));
         assert_eq!(lexer.next(), Some(Ok(Token::Identifer("x".to_string()))));
@@ -213,6 +213,14 @@ mod tests {
         assert_eq!(lexer.next(), Some(Ok(Token::LParen)));
         assert_eq!(lexer.next(), Some(Ok(Token::String("Hello, world!".to_string()))));
         assert_eq!(lexer.next(), Some(Ok(Token::RParen)));
+    }
+
+    #[test]
+    fn comments() {
+        let mut lexer = Token::lexer("// This is a comment\n/* This is a \n multi-line comment */");
+
+        assert_eq!(lexer.next(), Some(Ok(Token::Comment)));
+        assert_eq!(lexer.next(), Some(Ok(Token::Comment)));
     }
 
     #[test]
