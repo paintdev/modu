@@ -1,31 +1,49 @@
 use std::collections::HashMap;
+use ariadne::{Color, Label, Report, ReportKind, Source};
 use chumsky::prelude::*;
+use crate::{ast::Expr, lexer::{Span, Token, lex}};
 
-use crate::{ast::Expr, lexer::{Token, lex}};
+fn parser<'src>() -> impl Parser<
+    'src, 
+    &'src [(Token, Span)],
+    Vec<Expr>,
+    extra::Err<Rich<'src, (Token, Span), Span>>> 
+{
+    let expr = recursive(|expr| {
+        let atom = select! {
+            (Token::Int(n), _) => Expr::Int(n),
+            (Token::Float(f), _) => Expr::Float(f),
+        };
 
-fn parser<'src>() -> impl Parser<'src, &'src [Token], Vec<Expr>, extra::Err<Rich<'src, Token>>> {
-    let expr = select! {
-        Token::Int(i) => Expr::Int(i),
-    };
+        atom
+    });
 
-    let let_stmt = just(Token::Let)
-        .ignore_then(select! { Token::Identifier(name) => name })
-        .then_ignore(just(Token::Equals))
-        .then(expr)
-        .then_ignore(just(Token::Semicolon))
-        .map(|(name, value)| Expr::Let {
-            name,
-            value: Box::new(value),
-        });
-    
+    let let_stmt = select! { (Token::Let, _) => () }
+        .ignore_then(select! { (Token::Identifier(name), _) => name })
+        .then_ignore(select! { (Token::Equals, _) => () })
+        .then(expr.clone())
+        .then_ignore(select! { (Token::Semicolon, _) => () })
+        .map(|(name, value)| Expr::Let { name, value: Box::new(value) });
+
     let_stmt.repeated().collect().then_ignore(end())
 }
 
-pub fn parse(input: &str, context: &mut HashMap<String, Expr>) {
+pub fn parse(input: &str, filename: &str, _context: &mut HashMap<String, Expr>) {
     let tokens = match lex(input) {
         Ok(toks) => toks,
         Err(e) => {
-            println!("Lexing error: {:?}", e);
+            Report::build(ReportKind::Error, (filename, e.1.into_range()))
+                .with_code(0)
+                .with_message(format!("Lexing error: {:?}", e.0))
+                .with_label(
+                    Label::new((filename, e.1.into_range()))
+                        .with_color(Color::Red)
+                        .with_message(format!("{}", e.0)),
+                )
+                .finish()
+                .print((filename, Source::from(input)))
+                .unwrap();
+
             return;
         }
     };
@@ -34,8 +52,44 @@ pub fn parse(input: &str, context: &mut HashMap<String, Expr>) {
         Ok(ast) => {
             println!("Parsed AST: {:?}", ast);
         }
+
         Err(e) => {
-            println!("Parsing error: {:?}", e);
+            for err in e {
+               let mut span = err.span();
+
+               match err.reason() {
+                    chumsky::error::RichReason::ExpectedFound { expected, found } => {
+                        if let Some(found) = found {
+                            span = &found.1;
+                        }
+
+                        Report::build(ReportKind::Error, (filename, span.into_range()))
+                            .with_code(1)
+                            .with_message(format!("{:?}", err.reason()))
+                            .with_label(
+                                    Label::new((filename, span.into_range()))
+                                        .with_color(Color::Red)
+                                        .with_message(format!("expected {:?}, found {:?}", expected, found)),
+                            )
+                            .finish()
+                            .print((filename, Source::from(input)))
+                            .unwrap();
+                    }
+    
+                    _ => {
+                        Report::build(ReportKind::Error, (filename, span.into_range()))
+                            .with_message(format!("{:?}", err.reason()))
+                            .with_label(
+                                    Label::new((filename, span.into_range()))
+                                        .with_color(Color::Red)
+                                        .with_message("error occurred here"),
+                            )
+                            .finish()
+                            .print((filename, Source::from(input)))
+                            .unwrap();
+                    }
+               } 
+            }
         }
     }
 }

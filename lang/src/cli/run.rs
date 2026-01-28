@@ -23,5 +23,5 @@ pub fn run() {
 
     // todo: creating context with built in functions
 
-    parse(&file, &mut std::collections::HashMap::new());
+    parse(&file, &file_path, &mut std::collections::HashMap::new());
 }

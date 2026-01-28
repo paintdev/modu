@@ -36,7 +36,7 @@ pub fn repl() {
         input.push_str(&this_input);
 
         if open_functions == 0 {
-            parse(&input, context);
+            parse(&input, "<repl>", context);
         }
     }
 }

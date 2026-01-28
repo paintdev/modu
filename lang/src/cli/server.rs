@@ -52,8 +52,8 @@ pub fn server() {
 
                 std::io::set_output_capture(Some(Default::default()));
 
-                parse(&text, context);
-                
+                parse(&text, "<server>", context);
+
                 let captured = String::from_utf8(
                     Arc::try_unwrap(
                         std::io::set_output_capture(None).unwrap()
