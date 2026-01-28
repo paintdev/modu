@@ -1,9 +1,10 @@
 #![feature(internal_output_capture)]
 
 mod ast;
+mod evaulator;
+mod lexer;
 mod parser;
 mod cli;
-
 
 fn main() {
     let args = std::env::args().collect::<Vec<String>>();

@@ -1,18 +1,13 @@
-
-use std::collections::HashMap;
-use libloading::Library;
-use std::sync::Arc;
-
 #[derive(Debug, Clone)]
-pub enum Expr<'src> {
+pub enum Expr {
     Int(i64),
     Float(f64),
-    Var(&'src str),
+    Var(String),
 
-    Call(&'src str, Vec<Expr<'src>>),
+    Call(String, Vec<Expr>),
 
     Let {
-        name: &'src str,
-        value: Box<Expr<'src>>,
+        name: String,
+        value: Box<Expr>,
     }
 }
