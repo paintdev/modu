@@ -75,70 +75,34 @@ pub enum AST {
     },
 
     ForLoop {
-        start: Box<AST>, // x in x..y
-        end: Box<AST>, // y in x..y
-        index_name: String, // n like in "for n = 1..10"
+        start: Box<AST>,
+        end: Box<AST>,
+        index_name: String,
         body: Vec<AST>,
         line: usize,
     },
 
-    // x..y, for loops
     Range {
         left: Box<AST>,
         right: Box<AST>,
     },
 
     Exists(Box<AST>),
-
     IsEqual(Box<AST>, Box<AST>),
-
-    LessThan {
-        left: Box<AST>,
-        right: Box<AST>,
-        line: usize,
-    },
-
-    GreaterThan {
-        left: Box<AST>,
-        right: Box<AST>,
-        line: usize,
-    },
-
-    LessThanOrEqual {
-        left: Box<AST>,
-        right: Box<AST>,
-        line: usize,
-    },
-
-    GreaterThanOrEqual {
-        left: Box<AST>,
-        right: Box<AST>,
-        line: usize,
-    },
-
-    IsUnequal {
-        left: Box<AST>,
-        right: Box<AST>,
-        line: usize,
-    },
-
-    Addition {
-        left: Box<AST>,
-        right: Box<AST>,
-        line: usize,
-    },
-
-    Subtraction {
-        left: Box<AST>,
-        right: Box<AST>,
-        line: usize,
-    },
+    IsUnequal(Box<AST>, Box<AST>),
+    LessThan(Box<AST>, Box<AST>),
+    GreaterThan(Box<AST>, Box<AST>),
+    LessThanOrEqual(Box<AST>, Box<AST>),
+    GreaterThanOrEqual(Box<AST>, Box<AST>),
+    Addition(Box<AST>, Box<AST>),
+    Subtraction(Box<AST>, Box<AST>),
 
     Identifer(String),
     Integer(i64),
     String(String),
     Boolean(bool),
     Float(f64),
+
     Null,
     Semicolon,
     Lparen,
@@ -155,7 +119,6 @@ pub enum AST {
 impl std::fmt::Display for AST {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            // TODO: Implement more
             AST::String(s) => { 
                 let mut s = s.replace("\\t", "\t")
                     .replace("\\n", "\n")

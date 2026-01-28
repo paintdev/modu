@@ -414,7 +414,7 @@ pub fn eval(expr: AST, context: &mut HashMap<String, AST>) -> Result<AST, String
             }
         }
 
-        AST::IsUnequal { left, right, line: _ } => {
+        AST::IsUnequal(left, right) => {
             match (eval(*left, context)?, eval(*right, context)?) {
                 (AST::Integer(l), AST::Integer(r)) => {
                     return Ok(AST::Boolean(l != r));
@@ -438,7 +438,7 @@ pub fn eval(expr: AST, context: &mut HashMap<String, AST>) -> Result<AST, String
             }
         }
 
-        AST::LessThan { left, right, line: _ } => {
+        AST::LessThan( left, right ) => {
             match (eval(*left, context)?, eval(*right, context)?) {
                 (AST::Integer(l), AST::Integer(r)) => {
                     return Ok(AST::Boolean(l < r));
@@ -454,7 +454,7 @@ pub fn eval(expr: AST, context: &mut HashMap<String, AST>) -> Result<AST, String
             }
         }
 
-        AST::GreaterThan { left, right, line: _ } => {
+        AST::GreaterThan(left, right) => {
             match (eval(*left, context)?, eval(*right, context)?) {
                 (AST::Integer(l), AST::Integer(r)) => {
                     return Ok(AST::Boolean(l > r));
@@ -470,7 +470,7 @@ pub fn eval(expr: AST, context: &mut HashMap<String, AST>) -> Result<AST, String
             }
         }
 
-        AST::LessThanOrEqual { left, right, line: _ } => {
+        AST::LessThanOrEqual(left, right) => {
             match (eval(*left, context)?, eval(*right, context)?) {
                 (AST::Integer(l), AST::Integer(r)) => {
                     return Ok(AST::Boolean(l <= r));
@@ -486,7 +486,7 @@ pub fn eval(expr: AST, context: &mut HashMap<String, AST>) -> Result<AST, String
             }
         }
 
-        AST::GreaterThanOrEqual { left, right, line: _ } => {
+        AST::GreaterThanOrEqual(left, right) => {
             match (eval(*left, context)?, eval(*right, context)?) {
                 (AST::Integer(l), AST::Integer(r)) => {
                     return Ok(AST::Boolean(l >= r));
@@ -548,7 +548,7 @@ pub fn eval(expr: AST, context: &mut HashMap<String, AST>) -> Result<AST, String
             return Ok(AST::String(value.replace("\"", "").replace("\\n", "\n").replace("\\t", "\t")));
         }
 
-        AST::Addition { left, right, line: _ } => {
+        AST::Addition(left, right) => {
             match (eval(*left.clone(), context)?, eval(*right.clone(), context)?) {
                 (AST::Integer(l), AST::Integer(r)) => {
                     return Ok(AST::Integer(l + r));
@@ -576,7 +576,7 @@ pub fn eval(expr: AST, context: &mut HashMap<String, AST>) -> Result<AST, String
             }
         }
 
-        AST::Subtraction { left, right, line: _ } => {
+        AST::Subtraction(left, right) => {
             match (eval(*left.clone(), context)?, eval(*right.clone(), context)?) {
                 (AST::Integer(l), AST::Integer(r)) => {
                     return Ok(AST::Integer(l - r));
@@ -758,7 +758,7 @@ mod tests {
     fn addition() {
         let mut context = crate::utils::create_context();
 
-        let expr = AST::Addition { left: Box::new(AST::Integer(1)), right: Box::new(AST::Integer(2)), line: 0 };
+        let expr = AST::Addition(Box::new(AST::Integer(1)), Box::new(AST::Integer(2)));
 
         assert_eq!(eval(expr, &mut context).unwrap(), AST::Integer(3));
     }
@@ -767,7 +767,7 @@ mod tests {
     fn subtraction() {
         let mut context = crate::utils::create_context();
 
-        let expr = AST::Subtraction { left: Box::new(AST::Integer(1)), right: Box::new(AST::Integer(2)), line: 0 };
+        let expr = AST::Subtraction(Box::new(AST::Integer(1)), Box::new(AST::Integer(2)));
 
         assert_eq!(eval(expr, &mut context).unwrap(), AST::Integer(-1));
     }
@@ -776,7 +776,7 @@ mod tests {
     fn negative_num() {
         let mut context = crate::utils::create_context();
 
-        let expr = AST::Subtraction { left: Box::new(AST::Null), right: Box::new(AST::Integer(2)), line: 0 };
+        let expr = AST::Subtraction(Box::new(AST::Null), Box::new(AST::Integer(2)));
 
         assert_eq!(eval(expr, &mut context).unwrap(), AST::Integer(-2));
     }
@@ -785,7 +785,7 @@ mod tests {
     fn join_strings() {
         let mut context = crate::utils::create_context();
 
-        let expr = AST::Addition { left: Box::new(AST::String("Hello,".to_string())), right: Box::new(AST::String(" World!".to_string())), line: 0 };
+        let expr = AST::Addition(Box::new(AST::String("Hello, ".to_string())), Box::new(AST::String("World!".to_string())));
 
         assert_eq!(eval(expr, &mut context).unwrap(), AST::String("Hello, World!".to_string()));
     }
@@ -794,7 +794,7 @@ mod tests {
     fn add_floats() {
         let mut context = crate::utils::create_context();
 
-        let expr = AST::Addition { left: Box::new(AST::Float(1.0)), right: Box::new(AST::Float(2.0)), line: 0 };
+        let expr = AST::Addition(Box::new(AST::Float(1.0)), Box::new(AST::Float(2.0)));
 
         assert_eq!(eval(expr, &mut context).unwrap(), AST::Float(3.0));
     }
@@ -803,7 +803,7 @@ mod tests {
     fn add_float_and_int() {
         let mut context = crate::utils::create_context();
 
-        let expr = AST::Addition { left: Box::new(AST::Float(1.0)), right: Box::new(AST::Integer(2)), line: 0 };
+        let expr = AST::Addition(Box::new(AST::Float(1.0)), Box::new(AST::Integer(2)));
 
         assert_eq!(eval(expr, &mut context).unwrap(), AST::Float(3.0));
     }
@@ -812,7 +812,7 @@ mod tests {
     fn add_int_and_string() {
         let mut context = crate::utils::create_context();
 
-        let expr = AST::Addition { left: Box::new(AST::Integer(1)), right: Box::new(AST::String("cookie".to_string())), line: 0 };
+        let expr = AST::Addition(Box::new(AST::Integer(1)), Box::new(AST::String("cookie".to_string())));
 
         match eval(expr, &mut context) {
             Ok(_) => {

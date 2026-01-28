@@ -756,27 +756,25 @@ pub fn handle_nested_arguments(last: AST, arg: AST) -> Result<AST, (String, usiz
                         AST::Rparen => {
                             match arg {
                                 AST::Plus => {
-                                    args.push(AST::Addition {
-                                        left: Box::new(AST::Call {
+                                    args.push(AST::Addition(
+                                        Box::new(AST::Call {
                                             name: inner_name.clone(),
                                             args: inner_args,
                                             line: inner_line,
                                         }),
-                                        right: Box::new(AST::Null),
-                                        line,
-                                    });
+                                        Box::new(AST::Null),
+                                    ));
                                 }
 
                                 AST::Minus => {
-                                    args.push(AST::Subtraction {
-                                        left: Box::new(AST::Call {
+                                    args.push(AST::Subtraction(
+                                        Box::new(AST::Call {
                                             name: inner_name.clone(),
                                             args: inner_args,
                                             line: inner_line,
                                         }),
-                                        right: Box::new(AST::Null),
-                                        line,
-                                    });
+                                        Box::new(AST::Null),
+                                    ));
                                 }
 
                                 _ => {
@@ -810,29 +808,27 @@ pub fn handle_nested_arguments(last: AST, arg: AST) -> Result<AST, (String, usiz
                 AST::Rparen => {
                     match arg {
                         AST::Plus => {
-                            args.push(AST::Addition {
-                                left: Box::new(AST::PropertyCall {
+                            args.push(AST::Addition(
+                                Box::new(AST::PropertyCall {
                                     object,
                                     property,
                                     args: inner_args,
                                     line: inner_line,
                                 }),
-                                right: Box::new(AST::Null),
-                                line,
-                            });
+                                Box::new(AST::Null),
+                            ));
                         }
 
                         AST::Minus => {
-                            args.push(AST::Subtraction {
-                                left: Box::new(AST::PropertyCall {
+                            args.push(AST::Subtraction(
+                                Box::new(AST::PropertyCall {
                                     object,
                                     property,
                                     args: inner_args,
                                     line: inner_line,
                                 }),
-                                right: Box::new(AST::Null),
-                                line,
-                            });
+                                Box::new(AST::Null),
+                            ));
                         }
 
                         _ => {
@@ -925,27 +921,24 @@ pub fn handle_nested_arguments(last: AST, arg: AST) -> Result<AST, (String, usiz
             if val == AST::Comma {
                 args.push(val);
 
-                args.push(AST::Subtraction {
-                    left: Box::new(AST::Null),
-                    right: Box::new(AST::Null),
-                    line,
-                });
+                args.push(AST::Subtraction(
+                    Box::new(AST::Null),
+                    Box::new(AST::Null),
+                ));
             } else {
-                args.push(AST::Subtraction {
-                    left: Box::new(val),
-                    right: Box::new(AST::Null),
-                    line,
-                });
+                args.push(AST::Subtraction(
+                    Box::new(val),
+                    Box::new(AST::Null),
+                ));
             }
         }
 
-        (AST::Subtraction { left, right, line }, val) => {
+        (AST::Subtraction(left, right), val) => {
             if *right == AST::Null && val != AST::Comma {
-                args.push(AST::Subtraction {
+                args.push(AST::Subtraction(
                     left,
-                    right: Box::new(val),
-                    line,
-                });
+                    Box::new(val),
+                ));
             } else {
                 if last_arg != AST::Null {
                     args.push(last_arg);
@@ -956,11 +949,10 @@ pub fn handle_nested_arguments(last: AST, arg: AST) -> Result<AST, (String, usiz
         }
 
         (AST::Minus, _) => {
-            args.push(AST::Subtraction {
-                left: Box::new(AST::Null),
-                right: Box::new(arg),
-                line,
-            });
+            args.push(AST::Subtraction(
+                Box::new(AST::Null),
+                Box::new(arg),
+            ));
         }
 
         (val, AST::Plus) => {
@@ -991,23 +983,21 @@ pub fn handle_nested_arguments(last: AST, arg: AST) -> Result<AST, (String, usiz
                 }
 
                 _ => {
-                    args.push(AST::Addition {
-                        left: Box::new(val),
-                        right: Box::new(AST::Null),
-                        line,
-                    });
+                    args.push(AST::Addition(
+                        Box::new(val),
+                        Box::new(AST::Null),
+                    ));
                 }
             }
         }
 
         
-        (AST::Addition { left, right, line }, val) => {
+        (AST::Addition(left, right), val) => {
             if *right == AST::Null && arg != AST::Comma {
-                args.push(AST::Addition {
+                args.push(AST::Addition(
                     left,
-                    right: Box::new(val),
-                    line,
-                });
+                    Box::new(val),
+                ));
             } else {
                 if last_arg != AST::Null {
                     args.push(last_arg);
@@ -1181,20 +1171,18 @@ pub fn clean_args(obj: AST) -> AST {
             }
         }
 
-        AST::Addition { left, right, line } => {
-            AST::Addition {
-                left: Box::new(clean_args(*left)),
-                right: Box::new(clean_args(*right)),
-                line,
-            }
+        AST::Addition(left, right) => {
+            AST::Addition(
+                Box::new(clean_args(*left)),
+                Box::new(clean_args(*right)),
+            )
         }
 
-        AST::Subtraction { left, right, line } => {
-            AST::Subtraction {
-                left: Box::new(clean_args(*left)),
-                right: Box::new(clean_args(*right)),
-                line,
-            }
+        AST::Subtraction(left, right) => {
+            AST::Subtraction(
+                Box::new(clean_args(*left)),
+                Box::new(clean_args(*right)),
+            )
         }
 
         _ => obj
@@ -1379,43 +1367,38 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                         }
 
                                         Ok(Token::IsUnequal) => {
-                                            Box::new(AST::IsUnequal {
-                                                left: Box::new(value),
-                                                right: Box::new(AST::Null),
-                                                line,
-                                            })
+                                            Box::new(AST::IsUnequal(
+                                                Box::new(value),
+                                                Box::new(AST::Null),
+                                            ))
                                         }
 
                                         Ok(Token::LessThan) => {
-                                            Box::new(AST::LessThan { 
-                                                left: Box::new(value),
-                                                right: Box::new(AST::Null),
-                                                line,
-                                            })
+                                            Box::new(AST::LessThan(
+                                                Box::new(value),
+                                                Box::new(AST::Null),
+                                            ))
                                         }
 
                                         Ok(Token::GreaterThan) => {
-                                            Box::new(AST::GreaterThan { 
-                                                left: Box::new(value),
-                                                right: Box::new(AST::Null),
-                                                line,
-                                            })
+                                            Box::new(AST::GreaterThan( 
+                                                Box::new(value),
+                                                Box::new(AST::Null),
+                                            ))
                                         }
 
                                         Ok(Token::LessThanOrEqual) => {
-                                            Box::new(AST::LessThanOrEqual { 
-                                                left: Box::new(value),
-                                                right: Box::new(AST::Null),
-                                                line,
-                                            })
+                                            Box::new(AST::LessThanOrEqual( 
+                                                Box::new(value),
+                                                Box::new(AST::Null),
+                                            ))
                                         }
 
                                         Ok(Token::GreaterThanOrEqual) => {
-                                            Box::new(AST::GreaterThanOrEqual { 
-                                                left: Box::new(value),
-                                                right: Box::new(AST::Null),
-                                                line,
-                                            })
+                                            Box::new(AST::GreaterThanOrEqual(
+                                                Box::new(value),
+                                                Box::new(AST::Null),
+                                            ))
                                         }
 
                                         Ok(_) => {
@@ -1580,26 +1563,24 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                         });
                                     }
 
-                                    AST::Addition { left, right: _, line } => {
+                                    AST::Addition(left, right) => {
                                         temp_ast.push(AST::LetDeclaration {
                                             name,
-                                            value: Box::new(AST::Addition {
+                                            value: Box::new(AST::Addition(
                                                 left,
-                                                right: Box::new(AST::Identifer(s)),
-                                                line,
-                                            }),
+                                                Box::new(AST::Identifer(s)),
+                                            )),
                                             line,
                                         });
                                     }
 
-                                    AST::Subtraction { left, right: _, line } => {
+                                    AST::Subtraction(left, right) => {
                                         temp_ast.push(AST::LetDeclaration {
                                             name,
-                                            value: Box::new(AST::Subtraction {
+                                            value: Box::new(AST::Subtraction(
                                                 left,
-                                                right: Box::new(AST::Identifer(s)),
-                                                line,
-                                            }),
+                                                Box::new(AST::Identifer(s)),
+                                            )),
                                             line,
                                         });
                                     }
@@ -1674,20 +1655,18 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                     });
                                 }
 
-                                AST::Addition { left, right: _, line } => {
-                                    args.push(AST::Addition {
+                                AST::Addition(left, right) => {
+                                    args.push(AST::Addition(
                                         left,
-                                        right: Box::new(AST::Identifer(s)),
-                                        line,
-                                    });
+                                        Box::new(AST::Identifer(s)),
+                                    ));
                                 }
 
-                                AST::Subtraction { left, right: _, line } => {
-                                    args.push(AST::Subtraction {
+                                AST::Subtraction(left, right) => {
+                                    args.push(AST::Subtraction(
                                         left,
-                                        right: Box::new(AST::Identifer(s)),
-                                        line,
-                                    });
+                                        Box::new(AST::Identifer(s)),
+                                    ));
                                 }
 
                                 AST::Call { name: call_name, args: arg_args, line } => {
@@ -1741,20 +1720,18 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                     });
                                 }
 
-                                AST::Addition { left, right: _, line } => {
-                                    args.push(AST::Addition {
+                                AST::Addition(left, right) => {
+                                    args.push(AST::Addition(
                                         left,
-                                        right: Box::new(AST::Identifer(s)),
-                                        line,
-                                    });
+                                        Box::new(AST::Identifer(s)),
+                                    ));
                                 }
 
-                                AST::Subtraction { left, right: _, line } => {
-                                    args.push(AST::Subtraction {
+                                AST::Subtraction(left, right) => {
+                                    args.push(AST::Subtraction(
                                         left,
-                                        right: Box::new(AST::Identifer(s)),
-                                        line,
-                                    });
+                                        Box::new(AST::Identifer(s)),
+                                    ));
                                 }
 
                                 AST::Call { name: call_name, args: arg_args, line } => {
@@ -1835,44 +1812,39 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                     ));
                                 }
 
-                                AST::IsUnequal { left, right: _, line } => {
-                                    condition = Box::new(AST::IsUnequal {
+                                AST::IsUnequal(left, right) => {
+                                    condition = Box::new(AST::IsUnequal(
                                         left,
-                                        right: Box::new(AST::Identifer(s.clone())),
-                                        line,
-                                    });
+                                        Box::new(AST::Identifer(s.clone())),
+                                    ));
                                 }
 
-                                AST::LessThan { left, right: _, line } => {
-                                    condition = Box::new(AST::LessThan {
+                                AST::LessThan(left, right) => {
+                                    condition = Box::new(AST::LessThan(
                                         left,
-                                        right: Box::new(AST::Identifer(s.clone())),
-                                        line,
-                                    });
+                                        Box::new(AST::Identifer(s.clone())),
+                                    ));
                                 }
 
-                                AST::GreaterThan { left, right: _, line } => {
-                                    condition = Box::new(AST::GreaterThan {
+                                AST::GreaterThan(left, right) => {
+                                    condition = Box::new(AST::GreaterThan(
                                         left,
-                                        right: Box::new(AST::Identifer(s.clone())),
-                                        line,
-                                    });
+                                        Box::new(AST::Identifer(s.clone())),
+                                    ));
                                 }
 
-                                AST::LessThanOrEqual { left, right: _, line } => {
-                                    condition = Box::new(AST::LessThanOrEqual {
+                                AST::LessThanOrEqual(left, right) => {
+                                    condition = Box::new(AST::LessThanOrEqual(
                                         left,
-                                        right: Box::new(AST::Identifer(s.clone())),
-                                        line,
-                                    });
+                                        Box::new(AST::Identifer(s.clone())),
+                                    ));
                                 }
 
-                                AST::GreaterThanOrEqual { left, right: _, line } => {
-                                    condition = Box::new(AST::GreaterThanOrEqual {
+                                AST::GreaterThanOrEqual(left, right) => {
+                                    condition = Box::new(AST::GreaterThanOrEqual(
                                         left,
-                                        right: Box::new(AST::Identifer(s.clone())),
-                                        line,
-                                    });
+                                        Box::new(AST::Identifer(s.clone())),
+                                    ));
                                 }
 
                                 _ => {
@@ -2169,20 +2141,18 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                             let arg = args.pop().unwrap_or(AST::Null);
 
                             match arg {
-                                AST::Addition { left, right: _, line } => {
-                                    args.push(AST::Addition {
+                                AST::Addition(left, right) => {
+                                    args.push(AST::Addition(
                                         left,
-                                        right: Box::new(AST::String(s)),
-                                        line,
-                                    });
+                                        Box::new(AST::String(s)),
+                                    ));
                                 }
 
-                                AST::Subtraction { left, right: _, line } => {
-                                    args.push(AST::Subtraction {
+                                AST::Subtraction(left, right) => {
+                                    args.push(AST::Subtraction(
                                         left,
-                                        right: Box::new(AST::String(s)),
-                                        line,
-                                    });
+                                        Box::new(AST::String(s)),
+                                    ));
                                 }
 
                                 AST::Call { name: call_name, args: arg_args, line } => {
@@ -2239,14 +2209,13 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                             let val = *value;
 
                             match val {
-                                AST::Addition { left, right: _, line } => {
+                                AST::Addition(left, right) => {
                                     temp_ast.push(AST::LetDeclaration {
                                         name,
-                                        value: Box::new(AST::Addition {
+                                        value: Box::new(AST::Addition(
                                             left,
-                                            right: Box::new(AST::String(s)),
-                                            line,
-                                        }),
+                                            Box::new(AST::String(s)),
+                                        )),
                                         line,
                                     });
                                 }
@@ -2308,16 +2277,16 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                     return Err(("Expected a value before '=='".to_string(), current_line));
                                 }
                             } else {
-                                if let AST::IsUnequal { left, right, line } = condition.as_ref() {
+                                if let AST::IsUnequal(left, right) = condition.as_ref() {
                                     if let AST::Null = **right {
                                         temp_ast.push(AST::IfStatement {
-                                            condition: Box::new(AST::IsUnequal {
-                                                left: left.clone(),
-                                                right: Box::new(AST::String(s)),
-                                                line: *line,
-                                            }),
+                                            condition: Box::new(AST::IsUnequal(
+                                                left.clone(),
+                                                Box::new(AST::String(s)),
+                                            )),
+
                                             body,
-                                            line: *line,
+                                            line,
                                         });
                                     } else {
                                         return Err(("Expected a value before '!='".to_string(), current_line));
@@ -2353,27 +2322,24 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
 
                     match value {
                         AST::Integer(n) => {
-                            temp_ast.push(AST::Addition {
-                                left: Box::new(AST::Integer(n)),
-                                right: Box::new(AST::Null),
-                                line: current_line,
-                            });
+                            temp_ast.push(AST::Addition(
+                                Box::new(AST::Integer(n)),
+                                Box::new(AST::Null),
+                            ));
                         }
 
                         AST::Float(f) => {
-                            temp_ast.push(AST::Addition {
-                                left: Box::new(AST::Float(f)),
-                                right: Box::new(AST::Null),
-                                line: current_line,
-                            });
+                            temp_ast.push(AST::Addition(
+                                Box::new(AST::Float(f)),
+                                Box::new(AST::Null),
+                            ));
                         }
 
                         AST::String(s) => {
-                            temp_ast.push(AST::Addition {
-                                left: Box::new(AST::String(s)),
-                                right: Box::new(AST::Null),
-                                line: current_line,
-                            });
+                            temp_ast.push(AST::Addition(
+                                Box::new(AST::String(s)),
+                                Box::new(AST::Null),
+                            ));
                         }
 
                         AST::LetDeclaration { name, value, line } => {
@@ -2405,11 +2371,10 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                             } else {
                                 temp_ast.push(AST::LetDeclaration {
                                     name,
-                                    value: Box::new(AST::Addition {
-                                        left: value,
-                                        right: Box::new(AST::Null),
-                                        line,
-                                    }),
+                                    value: Box::new(AST::Addition(
+                                        value,
+                                        Box::new(AST::Null),
+                                    )),
                                     line,
                                 });
                             }
@@ -2441,48 +2406,43 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                 AST::IsEqual(left, right)=> {
                                     condition = Box::new(AST::IsEqual(
                                         left,
-                                        Box::new(AST::Addition { left: right, right: Box::new(AST::Null), line }),
+                                        Box::new(AST::Addition( right, Box::new(AST::Null))),
                                     ));
                                 }
 
-                                AST::IsUnequal { left, right, line } => {
-                                    condition = Box::new(AST::IsUnequal {
+                                AST::IsUnequal(left, right) => {
+                                    condition = Box::new(AST::IsUnequal(
                                         left,
-                                        right: Box::new(AST::Addition { left: right, right: Box::new(AST::Null), line }),
-                                        line,
-                                    });
+                                        Box::new(AST::Addition( right, Box::new(AST::Null))),
+                                    ));
                                 }
 
-                                AST::LessThan { left, right, line } => {
-                                    condition = Box::new(AST::LessThan {
+                                AST::LessThan(left, right) => {
+                                    condition = Box::new(AST::LessThan(
                                         left,
-                                        right: Box::new(AST::Addition { left: right, right: Box::new(AST::Null), line }),
-                                        line,
-                                    });
+                                        Box::new(AST::Addition( right, Box::new(AST::Null))),
+                                    ));
                                 }
 
-                                AST::GreaterThan { left, right, line } => {
-                                    condition = Box::new(AST::GreaterThan {
+                                AST::GreaterThan(left, right) => {
+                                    condition = Box::new(AST::GreaterThan(
                                         left,
-                                        right: Box::new(AST::Addition { left: right, right: Box::new(AST::Null), line }),
-                                        line,
-                                    });
+                                        Box::new(AST::Addition( right, Box::new(AST::Null))),
+                                    ));
                                 }
 
-                                AST::LessThanOrEqual { left, right, line } => {
-                                    condition = Box::new(AST::LessThanOrEqual {
+                                AST::LessThanOrEqual(left, right) => {
+                                    condition = Box::new(AST::LessThanOrEqual(
                                         left,
-                                        right: Box::new(AST::Addition { left: right, right: Box::new(AST::Null), line }),
-                                        line,
-                                    });
+                                        Box::new(AST::Addition( right, Box::new(AST::Null))),
+                                    ));
                                 }
 
-                                AST::GreaterThanOrEqual { left, right, line } => {
-                                    condition = Box::new(AST::GreaterThanOrEqual {
+                                AST::GreaterThanOrEqual(left, right) => {
+                                    condition = Box::new(AST::GreaterThanOrEqual(
                                         left,
-                                        right: Box::new(AST::Addition { left: right, right: Box::new(AST::Null), line }),
-                                        line,
-                                    });
+                                        Box::new(AST::Addition( right, Box::new(AST::Null))),
+                                    ));
                                 }
 
                                 _ => {
@@ -2497,20 +2457,18 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                             });
                         }
 
-                        AST::Addition { left, right: _, line } => {
-                            temp_ast.push(AST::Addition {
+                        AST::Addition(left, right) => {
+                            temp_ast.push(AST::Addition(
                                 left,
-                                right: Box::new(AST::Null),
-                                line,
-                            });
+                                Box::new(AST::Null),
+                            ));
                         }
 
-                        AST::Subtraction { left, right: _, line } => {
-                            temp_ast.push(AST::Subtraction {
+                        AST::Subtraction(left, right) => {
+                            temp_ast.push(AST::Subtraction(
                                 left,
-                                right: Box::new(AST::Null),
-                                line,
-                            });
+                                Box::new(AST::Null),
+                            ));
                         }
 
                         AST::Return(value) => {
@@ -2518,11 +2476,10 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                 return Err(("Unexpected '+' after 'return'".to_string(), current_line));
                             } else {
                                 temp_ast.push(AST::Return(
-                                    Box::new(AST::Addition {
-                                        left: value,
-                                        right: Box::new(AST::Null),
-                                        line: current_line,
-                                    }),
+                                    Box::new(AST::Addition(
+                                        value,
+                                        Box::new(AST::Null),
+                                    )),
                                 ));
                             }
                         }
@@ -2538,19 +2495,17 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
 
                     match value {
                         AST::Integer(n) => {
-                            temp_ast.push(AST::Subtraction {
-                                left: Box::new(AST::Integer(n)),
-                                right: Box::new(AST::Null),
-                                line: current_line,
-                            });
+                            temp_ast.push(AST::Subtraction(
+                                Box::new(AST::Integer(n)),
+                                Box::new(AST::Null),
+                            ));
                         }
 
                         AST::Float(f) => {
-                            temp_ast.push(AST::Subtraction {
-                                left: Box::new(AST::Float(f)),
-                                right: Box::new(AST::Null),
-                                line: current_line,
-                            });
+                            temp_ast.push(AST::Subtraction(
+                                Box::new(AST::Float(f)),
+                                Box::new(AST::Null),
+                            ));
                         }
 
                         AST::LetDeclaration { name, value, line } => {
@@ -2587,11 +2542,10 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                 _ => {
                                     temp_ast.push(AST::LetDeclaration {
                                         name,
-                                        value: Box::new(AST::Subtraction {
-                                            left: value,
-                                            right: Box::new(AST::Null),
-                                            line,
-                                        }),
+                                        value: Box::new(AST::Subtraction(
+                                            value,
+                                            Box::new(AST::Null),
+                                        )),
                                         line,
                                     });
                                 }
@@ -2626,48 +2580,43 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                 AST::IsEqual(left, right) => {
                                     condition = Box::new(AST::IsEqual(
                                         left,
-                                        Box::new(AST::Subtraction { left: right, right: Box::new(AST::Null), line }),
+                                        Box::new(AST::Subtraction(right, Box::new(AST::Null))),
                                     ));
                                 }
 
-                                AST::IsUnequal { left, right, line } => {
-                                    condition = Box::new(AST::IsUnequal {
+                                AST::IsUnequal(left, right) => {
+                                    condition = Box::new(AST::IsUnequal(
                                         left,
-                                        right: Box::new(AST::Subtraction { left: right, right: Box::new(AST::Null), line }),
-                                        line,
-                                    });
+                                        Box::new(AST::Subtraction(right, Box::new(AST::Null))),
+                                    ));
                                 }
 
-                                AST::LessThan { left, right, line } => {
-                                    condition = Box::new(AST::LessThan {
+                                AST::LessThan(left, right) => {
+                                    condition = Box::new(AST::LessThan(
                                         left,
-                                        right: Box::new(AST::Subtraction { left: right, right: Box::new(AST::Null), line }),
-                                        line,
-                                    });
+                                        Box::new(AST::Subtraction(right, Box::new(AST::Null))),
+                                    ));
                                 }
 
-                                AST::GreaterThan { left, right, line } => {
-                                    condition = Box::new(AST::GreaterThan {
+                                AST::GreaterThan(left, right) => {
+                                    condition = Box::new(AST::GreaterThan(
                                         left,
-                                        right: Box::new(AST::Subtraction { left: right, right: Box::new(AST::Null), line }),
-                                        line,
-                                    });
+                                        Box::new(AST::Subtraction(right, Box::new(AST::Null))),
+                                    ));
                                 }
 
-                                AST::LessThanOrEqual { left, right, line } => {
-                                    condition = Box::new(AST::LessThanOrEqual {
+                                AST::LessThanOrEqual(left, right) => {
+                                    condition = Box::new(AST::LessThanOrEqual(
                                         left,
-                                        right: Box::new(AST::Subtraction { left: right, right: Box::new(AST::Null), line }),
-                                        line,
-                                    });
+                                        Box::new(AST::Subtraction(right, Box::new(AST::Null))),
+                                    ));
                                 }
 
-                                AST::GreaterThanOrEqual { left, right, line } => {
-                                    condition = Box::new(AST::GreaterThanOrEqual {
+                                AST::GreaterThanOrEqual(left, right) => {
+                                    condition = Box::new(AST::GreaterThanOrEqual(
                                         left,
-                                        right: Box::new(AST::Subtraction { left: right, right: Box::new(AST::Null), line }),
-                                        line,
-                                    });
+                                        Box::new(AST::Subtraction(right, Box::new(AST::Null))),
+                                    ));
                                 }
 
                                 _ => {
@@ -2682,45 +2631,40 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                             });
 
                             if push_sub {
-                                temp_ast.push(AST::Subtraction {
-                                    left: Box::new(AST::Null),
-                                    right: Box::new(AST::Null),
-                                    line,
-                                });
+                                temp_ast.push(AST::Subtraction(
+                                    Box::new(AST::Null),
+                                    Box::new(AST::Null),
+                                ));
                             }
                         }
 
                         AST::Identifer(name) => {
-                            temp_ast.push(AST::Subtraction {
-                                left: Box::new(AST::Identifer(name)),
-                                right: Box::new(AST::Null),
-                                line: current_line,
-                            });
+                            temp_ast.push(AST::Subtraction(
+                                Box::new(AST::Identifer(name)),
+                                Box::new(AST::Null),
+                            ));
                         }
 
-                        AST::Subtraction { left, right: _, line } => {
-                            temp_ast.push(AST::Subtraction {
+                        AST::Subtraction(left, right) => {
+                            temp_ast.push(AST::Subtraction(
                                 left,
-                                right: Box::new(AST::Null),
-                                line,
-                            });
+                                Box::new(AST::Null),
+                            ));
                         }
 
-                        AST::Addition { left, right: _, line } => {
-                            temp_ast.push(AST::Addition {
+                        AST::Addition(left, right) => {
+                            temp_ast.push(AST::Addition(
                                 left,
-                                right: Box::new(AST::Null),
-                                line,
-                            });
+                                Box::new(AST::Null),
+                            ));
                         }
 
                         AST::Return(value) => {
                             temp_ast.push(AST::Return(
-                                Box::new(AST::Subtraction {
-                                    left: value,
-                                    right: Box::new(AST::Null),
-                                    line: current_line,
-                                }),
+                                Box::new(AST::Subtraction(
+                                    value,
+                                    Box::new(AST::Null),
+                                )),
                             ));
                         }
 
@@ -2757,26 +2701,24 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
 
                         AST::LetDeclaration { name, value, line } => {
                             match *value {
-                                AST::Addition { left, right: _, line } => {
+                                AST::Addition(left, right) => {
                                     temp_ast.push(AST::LetDeclaration {
                                         name,
-                                        value: Box::new(AST::Addition {
+                                        value: Box::new(AST::Addition(
                                             left,
-                                            right: Box::new(AST::Integer(n)),
-                                            line,
-                                        }),
+                                            Box::new(AST::Integer(n)),
+                                        )),
                                         line,
                                     });
                                 }
 
-                                AST::Subtraction { left, right: _, line } => {
+                                AST::Subtraction(left, right) => {
                                     temp_ast.push(AST::LetDeclaration {
                                         name,
-                                        value: Box::new(AST::Subtraction {
+                                        value: Box::new(AST::Subtraction(
                                             left,
-                                            right: Box::new(AST::Integer(n)),
-                                            line,
-                                        }),
+                                            Box::new(AST::Integer(n)),
+                                        )),
                                         line,
                                     });
                                 }
@@ -2830,24 +2772,22 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                             }
                         }
 
-                        AST::Addition { left, right, line } => {
+                        AST::Addition(left, right) => {
                             if let AST::Null = *right {
-                                temp_ast.push(AST::Addition {
+                                temp_ast.push(AST::Addition(
                                     left,
-                                    right: Box::new(AST::Integer(n)),
-                                    line,
-                                });
+                                    Box::new(AST::Integer(n)),
+                                ));
                             } else {
                                 return Err(("Expected a value before '+'".to_string(), current_line));
                             }
                         }
 
-                        AST::Subtraction { left, right: _, line } => {
-                            temp_ast.push(AST::Subtraction {
+                        AST::Subtraction(left, right) => {
+                            temp_ast.push(AST::Subtraction(
                                 left,
-                                right: Box::new(AST::Integer(n)),
-                                line,
-                            });
+                                Box::new(AST::Integer(n)),
+                            ));
                         }
 
                         AST::IfStatement { mut condition, body, line } => { 
@@ -2860,27 +2800,27 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                     right = c_r;
                                 }
 
-                                AST::IsUnequal { left: c_l, right: c_r, line: _ } => {
+                                AST::IsUnequal(c_l, c_r) => {
                                     left = c_l;
                                     right = c_r;
                                 }
 
-                                AST::LessThan { left: c_l, right: c_r, line: _ } => {
+                                AST::LessThan(c_l, c_r) => {
                                     left = c_l;
                                     right = c_r;
                                 }
 
-                                AST::GreaterThan { left: c_l, right: c_r, line: _ } => {
+                                AST::GreaterThan(c_l, c_r) => {
                                     left = c_l;
                                     right = c_r;
                                 }
 
-                                AST::LessThanOrEqual { left: c_l, right: c_r, line: _ } => {
+                                AST::LessThanOrEqual(c_l, c_r) => {
                                     left = c_l;
                                     right = c_r;
                                 }
 
-                                AST::GreaterThanOrEqual { left: c_l, right: c_r, line: _ } => {
+                                AST::GreaterThanOrEqual(c_l, c_r) => {
                                     left = c_l;
                                     right = c_r;
                                 }
@@ -2903,20 +2843,18 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                     right = Box::new(AST::Integer(n));
                                 }
 
-                                AST::Addition { left: r_left, right: _, line } => {
-                                    right = Box::new(AST::Addition {
-                                        left: r_left,
-                                        right: Box::new(AST::Integer(n)),
-                                        line,
-                                    });
+                                AST::Addition(r_left, _) => {
+                                    right = Box::new(AST::Addition(
+                                        r_left,
+                                        Box::new(AST::Integer(n)),
+                                    ));
                                 }
 
-                                AST::Subtraction { left: r_left, right: _, line } => {
-                                    right = Box::new(AST::Subtraction {
-                                        left: r_left,
-                                        right: Box::new(AST::Integer(n)),
-                                        line,
-                                    });
+                                AST::Subtraction(r_left, _) => {
+                                    right = Box::new(AST::Subtraction(
+                                        r_left,
+                                        Box::new(AST::Integer(n)),
+                                    ));
                                 }
 
                                 _ => {
@@ -2932,44 +2870,39 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                     ));
                                 }
 
-                                AST::IsUnequal { left: _, right: _, line }  => {
-                                    condition = Box::new(AST::IsUnequal {
+                                AST::IsUnequal(_, _)  => {
+                                    condition = Box::new(AST::IsUnequal(
                                         left,
                                         right,
-                                        line,
-                                    });
+                                    ));
                                 }
 
-                                AST::LessThan { left: _, right: _, line }  => {
-                                    condition = Box::new(AST::LessThan {
+                                AST::LessThan(_, _)  => {
+                                    condition = Box::new(AST::LessThan(
                                         left,
                                         right,
-                                        line,
-                                    });
+                                    ));
                                 }
 
-                                AST::GreaterThan { left: _, right: _, line }  => {
-                                    condition = Box::new(AST::GreaterThan {
+                                AST::GreaterThan(_, _)  => {
+                                    condition = Box::new(AST::GreaterThan(
                                         left,
                                         right,
-                                        line,
-                                    });
+                                    ));
                                 }
 
-                                AST::LessThanOrEqual { left: _, right: _, line }  => {
-                                    condition = Box::new(AST::LessThanOrEqual {
+                                AST::LessThanOrEqual(_, _)  => {
+                                    condition = Box::new(AST::LessThanOrEqual(
                                         left,
                                         right,
-                                        line,
-                                    });
+                                    ));
                                 }
 
-                                AST::GreaterThanOrEqual { left: _, right: _, line }  => {
-                                    condition = Box::new(AST::GreaterThanOrEqual {
+                                AST::GreaterThanOrEqual(_, _)  => {
+                                    condition = Box::new(AST::GreaterThanOrEqual(
                                         left,
                                         right,
-                                        line,
-                                    });
+                                    ));
                                 }
 
                                 _ => {
@@ -2987,21 +2920,19 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                         AST::Return(value) => {
                             if let AST::Null = *value {
                                 temp_ast.push(AST::Return(Box::new(AST::Integer(n))));
-                            } else if let AST::Addition { left, right: _, line } = *value {
+                            } else if let AST::Addition(left, right) = *value {
                                 temp_ast.push(AST::Return(
-                                    Box::new(AST::Addition {
+                                    Box::new(AST::Addition(
                                         left,
-                                        right: Box::new(AST::Integer(n)),
-                                        line,
-                                    }),
+                                        Box::new(AST::Integer(n)),
+                                    )),
                                 ));
-                            } else if let AST::Subtraction { left, right: _, line } = *value {
+                            } else if let AST::Subtraction(left, right) = *value {
                                 temp_ast.push(AST::Return(
-                                    Box::new(AST::Subtraction {
+                                    Box::new(AST::Subtraction(
                                         left,
-                                        right: Box::new(AST::Integer(n)),
-                                        line,
-                                    }),
+                                        Box::new(AST::Integer(n)),
+                                    )),
                                 ));
                             } else {
                                 return Err(("Unexpected integer after 'return'".to_string(), current_line));
@@ -3128,16 +3059,16 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                     return Err(("Expected a value before '=='".to_string(), current_line));
                                 }
                             } else {
-                                if let AST::IsUnequal { left, right, line } = condition.as_ref() {
+                                if let AST::IsUnequal(left, right) = condition.as_ref() {
                                     if let AST::Null = **right {
                                         temp_ast.push(AST::IfStatement {
-                                            condition: Box::new(AST::IsUnequal {
-                                                left: left.clone(),
-                                                right: Box::new(AST::Boolean(b)),
-                                                line: *line,
-                                            }),
+                                            condition: Box::new(AST::IsUnequal(
+                                                left.clone(),
+                                                Box::new(AST::Boolean(b)),
+                                            )),
+
                                             body,
-                                            line: *line,
+                                            line,
                                         });
                                     } else {
                                         return Err(("Expected a value before '!='".to_string(), current_line));
@@ -3203,26 +3134,24 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
 
                         AST::LetDeclaration { name, value, line } => {
                             match *value {
-                                AST::Addition { left, right: _, line } => {
+                                AST::Addition(left, right) => {
                                     temp_ast.push(AST::LetDeclaration {
                                         name,
-                                        value: Box::new(AST::Addition {
+                                        value: Box::new(AST::Addition(
                                             left,
-                                            right: Box::new(AST::Float(f)),
-                                            line,
-                                        }),
+                                            Box::new(AST::Float(f)),
+                                        )),
                                         line,
                                     });
                                 }
 
-                                AST::Subtraction { left, right: _, line } => {
+                                AST::Subtraction(left, right) => {
                                     temp_ast.push(AST::LetDeclaration {
                                         name,
-                                        value: Box::new(AST::Subtraction {
+                                        value: Box::new(AST::Subtraction(
                                             left,
-                                            right: Box::new(AST::Float(f)),
-                                            line,
-                                        }),
+                                            Box::new(AST::Float(f)),
+                                        )),
                                         line,
                                     });
                                 }
@@ -3294,24 +3223,22 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                             }
                         }
 
-                        AST::Addition { left, right, line } => {
+                        AST::Addition(left, right) => {
                             if let AST::Null = *right {
-                                temp_ast.push(AST::Addition {
+                                temp_ast.push(AST::Addition(
                                     left,
-                                    right: Box::new(AST::Float(f)),
-                                    line,
-                                });
+                                    Box::new(AST::Float(f)),
+                                ));
                             } else {
                                 return Err(("Expected a value before '+'".to_string(), current_line));
                             }
                         }
 
-                        AST::Subtraction { left, right: _, line } => {
-                            temp_ast.push(AST::Subtraction {
+                        AST::Subtraction(left, right) => {
+                            temp_ast.push(AST::Subtraction(
                                 left,
-                                right: Box::new(AST::Float(f)),
-                                line,
-                            });
+                                Box::new(AST::Float(f)),
+                            ));
                         }
 
                         _ => {
