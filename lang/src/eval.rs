@@ -504,7 +504,7 @@ pub fn eval(expr: AST, context: &mut HashMap<String, AST>) -> Result<AST, String
             }
         }
 
-        AST::Exists { value, line: _ } => {
+        AST::Exists(value) => {
             match eval(*value, context)? {
                 AST::Null => {
                     return Ok(AST::Boolean(false));

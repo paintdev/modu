@@ -89,14 +89,9 @@ pub enum AST {
     Range {
         left: Box<AST>,
         right: Box<AST>,
-        line: usize,
     },
 
-    Exists {
-        value: Box<AST>,
-        line: usize,
-    },
-
+    Exists(Box<AST>),
     IsEqual {
         left: Box<AST>,
         right: Box<AST>,

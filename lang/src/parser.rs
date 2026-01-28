@@ -1339,7 +1339,6 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                             temp_ast.push(AST::Range {
                                 left: Box::new(AST::Identifer(name)),
                                 right: Box::new(AST::Null),
-                                line: current_line,
                             });
                         }
 
@@ -1347,7 +1346,6 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                             temp_ast.push(AST::Range {
                                 left: Box::new(AST::Integer(n)),
                                 right: Box::new(AST::Null),
-                                line: current_line,
                             });
                         }
 
@@ -1928,7 +1926,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                             }
                         }
 
-                        AST::Range { left, right, line } => {
+                        AST::Range { left, right } => {
                             if let AST::Null = *right {
                                 let last = temp_ast.pop().unwrap_or(AST::Null);
 
@@ -3032,7 +3030,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                         }
 
                         // this closes the range, so we can add it to the loop
-                        AST::Range { left, right: _, line } => {
+                        AST::Range { left, right: _ } => {
                             let last = temp_ast.pop().unwrap_or(AST::Null);
 
                             match last {
@@ -3446,10 +3444,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                             match temp_ast.pop() {
                                 Some(AST::IfStatement { condition: _, body, line }) => {
                                     temp_ast.push(AST::IfStatement {
-                                        condition: Box::new(AST::Exists {
-                                            value: Box::new(AST::Identifer(name)),
-                                            line,
-                                        }),
+                                        condition: Box::new(AST::Exists(Box::new(AST::Identifer(name)))),
                                         body,
                                         line,
                                     });
