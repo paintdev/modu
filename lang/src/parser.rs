@@ -1324,17 +1324,17 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
 
                     match value {
                         AST::Identifer(name) => {
-                            temp_ast.push(AST::Range {
-                                left: Box::new(AST::Identifer(name)),
-                                right: Box::new(AST::Null),
-                            });
+                            temp_ast.push(AST::Range(
+                                Box::new(AST::Identifer(name)),
+                                Box::new(AST::Null),
+                            ));
                         }
 
                         AST::Integer(n) => {
-                            temp_ast.push(AST::Range {
-                                left: Box::new(AST::Integer(n)),
-                                right: Box::new(AST::Null),
-                            });
+                            temp_ast.push(AST::Range(
+                                Box::new(AST::Integer(n)),
+                                Box::new(AST::Null),
+                            ));
                         }
 
                         _ => {
@@ -1895,7 +1895,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                             }
                         }
 
-                        AST::Range { left, right } => {
+                        AST::Range(left, right) => {
                             if let AST::Null = *right {
                                 let last = temp_ast.pop().unwrap_or(AST::Null);
 
@@ -2945,7 +2945,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                         }
 
                         // this closes the range, so we can add it to the loop
-                        AST::Range { left, right: _ } => {
+                        AST::Range(left, _) => {
                             let last = temp_ast.pop().unwrap_or(AST::Null);
 
                             match last {
