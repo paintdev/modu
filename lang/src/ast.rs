@@ -28,10 +28,7 @@ pub enum AST {
         line: usize,
     },
 
-    Array {
-        elements: Vec<AST>,
-        line: usize,
-    },
+    Array(Vec<AST>),
 
     PropertyAccess {
         object: Option<String>,
@@ -226,7 +223,7 @@ impl std::fmt::Display for AST {
                 Ok(())
             }
 
-            AST::Array { elements, line } => {
+            AST::Array(elements) => {
                 write!(f, "[")?;
 
                 let mut str = String::new();

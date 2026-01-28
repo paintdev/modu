@@ -615,11 +615,13 @@ pub fn eval(expr: AST, context: &mut HashMap<String, AST>) -> Result<AST, String
         AST::PropertyAccess { object, property, line: _ } => {
             match object {
                 Some(name) => {
+                    let evaluated_property = eval(*property, context)?;
+
                     match context.get(&name) {
                         Some(value) => {
                             match value {
                                 AST::Object { properties, line: _ } => {
-                                    match *property {
+                                    match evaluated_property {
                                         AST::Identifer(prop_name) => {
                                             match properties.get(&prop_name) {
                                                 Some(value) => {
@@ -633,13 +635,13 @@ pub fn eval(expr: AST, context: &mut HashMap<String, AST>) -> Result<AST, String
                                         }
 
                                         _ => {
-                                            return Err("Property name must be an identifier".to_string());
+                                            return Err(format!("Property name must be a string or identifier, got {:?}", evaluated_property));
                                         }
                                     }
                                 }
 
-                                AST::Array { elements, line } => {
-                                    match *property {
+                                AST::Array(elements) => {
+                                    match evaluated_property {
                                         AST::Integer(index) => {
                                             if index < 0 || (index as usize) >= elements.len() {
                                                 return Err(format!("Index {} out of bounds for array of length {}", index, elements.len()));
@@ -649,7 +651,7 @@ pub fn eval(expr: AST, context: &mut HashMap<String, AST>) -> Result<AST, String
                                         }
 
                                         _ => {
-                                            return Err("Property name must be an identifier".to_string());
+                                            return Err("Array index must be an integer".to_string());
                                         }
                                     }
                                 }
@@ -676,14 +678,14 @@ pub fn eval(expr: AST, context: &mut HashMap<String, AST>) -> Result<AST, String
             return Ok(*value);
         }
 
-        AST::Array { elements, line: _ } => {
+        AST::Array(elements) => {
             let mut evaluated_elements: Vec<AST> = vec![];
 
             for element in elements {
                 evaluated_elements.push(eval(element, context)?);
             }
 
-            return Ok(AST::Array { elements: evaluated_elements, line: 0 });
+            return Ok(AST::Array(evaluated_elements));
         }
 
         _ => {

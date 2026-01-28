@@ -213,24 +213,16 @@ pub fn insert_right_bracket(obj: AST) -> AST {
 
 pub fn insert_right_square_bracket(obj: AST) -> AST {
     match obj {
-        AST::Array { elements, line } => {
-            AST::Array {
-                elements,
-                line,
-            }
+        AST::Array(elements) => {
+            AST::Array(elements)
         }
 
         AST::Call { name, mut args, line } => {
             let last = args.pop().unwrap_or(AST::Null);
 
             match last {
-                AST::Array { elements, line: array_line } => {
-                    let new_array = AST::Array {
-                        elements,
-                        line: array_line,
-                    };
-
-                    args.push(new_array);
+                AST::Array(elements) => {
+                    args.push(AST::Array(elements));
                 }
 
                 val => {
@@ -249,13 +241,8 @@ pub fn insert_right_square_bracket(obj: AST) -> AST {
             let last = args.pop().unwrap_or(AST::Null);
 
             match last {
-                AST::Array { elements, line: array_line } => {
-                    let new_array = AST::Array {
-                        elements,
-                        line: array_line,
-                    };
-
-                    args.push(new_array);
+                AST::Array(elements) => {
+                    args.push(AST::Array(elements));
                 }
 
                 val => {
@@ -1661,15 +1648,12 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                         });
                                     }
 
-                                    AST::Array { mut elements, line } => {
+                                    AST::Array(mut elements) => {
                                         elements.push(AST::Identifer(lexer.slice().to_string()));
 
                                         temp_ast.push(AST::LetDeclaration {
                                             name,
-                                            value: Box::new(AST::Array {
-                                                elements,
-                                                line,
-                                            }),
+                                            value: Box::new(AST::Array(elements)),
                                             line,
                                         });
                                     }
@@ -2838,15 +2822,12 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                     });
                                 }
 
-                                AST::Array { mut elements, line } => {
+                                AST::Array(mut elements) => {
                                     elements.push(AST::Integer(n));
 
                                     temp_ast.push(AST::LetDeclaration {
                                         name,
-                                        value: Box::new(AST::Array {
-                                            elements,
-                                            line,
-                                        }),
+                                        value: Box::new(AST::Array(elements)),
                                         line,
                                     });
                                 }
@@ -3129,15 +3110,12 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
 
                         AST::LetDeclaration { name, value, line } => {
                             match *value {
-                                AST::Array { mut elements, line } => {
+                                AST::Array(mut elements) => {
                                     elements.push(AST::Boolean(lexer.slice() == "true"));
 
                                     temp_ast.push(AST::LetDeclaration {
                                         name,
-                                        value: Box::new(AST::Array {
-                                            elements,
-                                            line,
-                                        }),
+                                        value: Box::new(AST::Array(elements)),
                                         line,
                                     });
                                 }
@@ -3302,15 +3280,12 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                     });
                                 }
 
-                                AST::Array { mut elements, line } => {
+                                AST::Array(mut elements) => {
                                     elements.push(AST::Float(lexer.slice().parse().unwrap()));
 
                                     temp_ast.push(AST::LetDeclaration {
                                         name,
-                                        value: Box::new(AST::Array {
-                                            elements,
-                                            line,
-                                        }),
+                                        value: Box::new(AST::Array(elements)),
                                         line,
                                     });
                                 }
@@ -3560,10 +3535,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                         AST::LetDeclaration { name, value: _, line } => {
                             temp_ast.push(AST::LetDeclaration {
                                 name,
-                                value: Box::new(AST::Array {
-                                    elements: Vec::new(),
-                                    line: current_line,
-                                }),
+                                value: Box::new(AST::Array(vec![])),
                                 line,
                             });
                         }
@@ -3605,13 +3577,10 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
 
                     match last {
                         AST::LetDeclaration { name, value, line } => {
-                            if let AST::Array { elements, line } = *value {
+                            if let AST::Array(elements) = *value {
                                 temp_ast.push(AST::LetDeclaration {
                                     name,
-                                    value: Box::new(AST::Array {
-                                        elements,
-                                        line,
-                                    }),
+                                    value: Box::new(AST::Array(elements)),
                                     line,
                                 });
                             } else {

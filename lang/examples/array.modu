@@ -2,4 +2,13 @@ let a = "hello, world";
 
 let array = [a, 1, 1.5, true, null];
 print("Array: ", array);
+
 print("First element: ", array[0]);
+
+let lenght = len(array);
+print("Array length: ", lenght);
+
+let b = lenght - 1;
+for i = 0..b {
+    print("Element ", i, ": ", array[i]);
+}
