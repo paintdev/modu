@@ -179,7 +179,7 @@ mod tests {
     }
 
     #[test]
-    fn asign_str() {
+    fn assign_str() {
         let mut lexer = Token::lexer("let x = \"test\"");
         assert_eq!(lexer.next(), Some(Ok(Token::Let)));
         assert_eq!(lexer.next(), Some(Ok(Token::Identifer("x".to_string()))));
@@ -188,7 +188,7 @@ mod tests {
     }
 
     #[test]
-    fn asign_number() {
+    fn assign_number() {
         let mut lexer = Token::lexer("let x = 10");
         assert_eq!(lexer.next(), Some(Ok(Token::Let)));
         assert_eq!(lexer.next(), Some(Ok(Token::Identifer("x".to_string()))));
@@ -197,7 +197,7 @@ mod tests {
     }
 
     #[test]
-    fn asign_boolean() {
+    fn assign_boolean() {
         let mut lexer = Token::lexer("let x = true");
         assert_eq!(lexer.next(), Some(Ok(Token::Let)));
         assert_eq!(lexer.next(), Some(Ok(Token::Identifer("x".to_string()))));

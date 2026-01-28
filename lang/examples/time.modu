@@ -14,4 +14,4 @@ print("time.now_local: ", now_local);
 print("time.to_iso_8601: ", iso);
 print("time.to_rfc_2822: ", rfc_2822);
 print("time.to_local_date_time: ", local);
-print("time.to_local_date_time: ", utc);
+print("time.to_utc_date_time: ", utc);

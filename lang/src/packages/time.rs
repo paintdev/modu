@@ -7,7 +7,7 @@ use crate::eval::eval;
 
 // deprecated
 pub fn now(_: Vec<AST>,  _: &mut HashMap<String, AST>) -> Result<(AST, AST), String> {
-    println!("Warning: time.now() is deprecated. Use time.now_unix() instead");
+    println!("Warning: time.now() is deprecated and will be removed in the near future. Use time.now_unix() instead");
 
     let now = time::SystemTime::now()
         .duration_since(time::UNIX_EPOCH)
