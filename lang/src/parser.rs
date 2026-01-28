@@ -3707,10 +3707,6 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
 
             AST::Identifer(name) => {
                 let result = eval(AST::Identifer(name), context);
-                    
-                if result.is_err() {
-                    return Err((result.err().unwrap(), 1));
-                }
 
                 print_res(result.unwrap());
             }
