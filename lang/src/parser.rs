@@ -884,7 +884,7 @@ pub fn handle_nested_arguments(last: AST, arg: AST) -> Result<AST, (String, usiz
             });
         }
 
-        (AST::PropertyAccess { object, property, line }, AST::Integer(index)) => {
+        (AST::PropertyAccess { object, property: _, line }, AST::Integer(index)) => {
             args.push(AST::PropertyAccess {
                 object,
                 property: Box::new(AST::Integer(index)),
@@ -1931,7 +1931,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                 let last = temp_ast.pop().unwrap_or(AST::Null);
 
                                 match last {
-                                    AST::ForLoop { start, end: _, index_name, body, line: for_line } => {
+                                    AST::ForLoop { start: _, end: _, index_name, body, line: for_line } => {
                                         temp_ast.push(AST::ForLoop {
                                             start: left,
                                             end: Box::new(AST::Identifer(lexer.slice().to_string())),
@@ -3454,11 +3454,11 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                 }
 
                                 Some(v) => {
-                                    return Err(("Expected an if statement before '{'".to_string(), current_line));
+                                    return Err((format!("Unexpected value before '{{': {:?}", v), current_line));
                                 }
 
                                 None => {
-                                    return Err(("Expected an if statement before '{'".to_string(), current_line));
+                                    return Err((format!("Unexpected end before '{{' after identifier: {}", name), current_line));
                                 }
                             }
                         }
@@ -3704,7 +3704,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                     return Err((result.err().unwrap(), line));
                 }
             }
-
+ 
             AST::Identifer(name) => {
                 let result = eval(AST::Identifer(name), context);
 

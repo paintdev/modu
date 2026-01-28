@@ -194,11 +194,11 @@ pub fn ceil(args: Vec<AST>, context: &mut HashMap<String, AST>) -> Result<(AST, 
     }
 }
 
-pub fn random(_: Vec<AST>, context: &mut HashMap<String, AST>) -> Result<(AST, AST), String> {
+pub fn random(_: Vec<AST>, _: &mut HashMap<String, AST>) -> Result<(AST, AST), String> {
     return Ok((AST::Float(rand::random()), AST::Null));
 }
 
-pub fn random_int(_: Vec<AST>, context: &mut HashMap<String, AST>) -> Result<(AST, AST), String> {
+pub fn random_int(_: Vec<AST>, _: &mut HashMap<String, AST>) -> Result<(AST, AST), String> {
     return Ok((AST::Integer(rand::random()), AST::Null));
 }
 

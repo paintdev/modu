@@ -1,5 +1,3 @@
-use argon2::password_hash::rand_core::le;
-
 use crate::ast::AST;
 
 use std::{collections::HashMap, path::PathBuf};
@@ -350,7 +348,7 @@ pub fn eval(expr: AST, context: &mut HashMap<String, AST>) -> Result<AST, String
             return Ok(AST::Break);
         }
 
-        AST::Loop { body, line } => {
+        AST::Loop { body, line: _ } => {
             'outer: loop {
                 for expr in &body {
                     let result = eval(expr.clone(), context)?;
@@ -362,7 +360,7 @@ pub fn eval(expr: AST, context: &mut HashMap<String, AST>) -> Result<AST, String
             }
         }
 
-        AST::ForLoop { start, end, index_name, body, line } => {
+        AST::ForLoop { start, end, index_name, body, line: _ } => {
             let start_val = match eval(*start, context)? {
                 AST::Integer(i) => i,
                 v => {
