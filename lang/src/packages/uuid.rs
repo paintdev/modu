@@ -6,6 +6,10 @@ pub fn v4(_: Vec<AST>, _: &mut HashMap<String, AST>) -> Result<(AST, AST), Strin
     Ok((AST::String(uuid::Uuid::new_v4().to_string()), AST::Null))
 }
 
+pub fn v7(_: Vec<AST>, _: &mut HashMap<String, AST>) -> Result<(AST, AST), String> {
+    Ok((AST::String(uuid::Uuid::now_v7().to_string()), AST::Null))
+}
+
 pub fn get_object() -> HashMap<String, AST> {
     let mut object = HashMap::new();
 
@@ -15,6 +19,15 @@ pub fn get_object() -> HashMap<String, AST> {
             name: "v4".to_string(),
             args: vec![],
             call_fn: v4
+        }
+    );
+
+    object.insert(
+        "v7".to_string(),
+        AST::InternalFunction {
+            name: "v7".to_string(),
+            args: vec![],
+            call_fn: v7
         }
     );
 
@@ -29,6 +42,6 @@ mod tests {
     fn get_object_test() {
         let object = get_object();
 
-        assert_eq!(object.len(), 1);
+        assert_eq!(object.len(), 2);
     }
 }

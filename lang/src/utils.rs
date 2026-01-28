@@ -65,6 +65,15 @@ pub fn create_context() -> HashMap<String, AST> {
             call_fn: crate::internal::exit,
         }
     );
+
+    context.insert(
+        "len".to_string(),
+        AST::InternalFunction {
+            name: "len".to_string(),
+            args: vec!["val".to_string()], 
+            call_fn: crate::internal::len,
+        }
+    );
     
     return context;
 }
@@ -87,7 +96,7 @@ mod tests {
     fn create_context_test() {
         let context = create_context();
 
-        assert_eq!(context.len(), 6);
+        assert_eq!(context.len(), 7);
         assert_eq!(context.contains_key("print"), true);
         assert_eq!(context.contains_key("exit"), true);
         assert_eq!(context.contains_key("input"), true);

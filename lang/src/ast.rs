@@ -3,14 +3,12 @@ use std::collections::HashMap;
 use libloading::Library;
 use std::sync::Arc;
 
-use crate::packages::array;
-
 #[derive(Debug, Clone)]
 pub enum AST {
     LetDeclaration {
         name: Option<String>,
         value: Box<AST>,
-        line: usize, // for error msgs
+        line: usize,
     },
 
     IfStatement {
@@ -30,9 +28,11 @@ pub enum AST {
         line: usize,
     },
 
+    Array(Vec<AST>),
+
     PropertyAccess {
         object: Option<String>,
-        property: Option<String>,
+        property: Box<AST>,
         line: usize,
     },
 
@@ -56,10 +56,7 @@ pub enum AST {
         line: usize,
     },
 
-    Return {
-        value: Box<AST>,
-        line: usize,
-    },
+    Return(Box<AST>),
 
     InternalFunction {
         name: String,
@@ -78,78 +75,31 @@ pub enum AST {
     },
 
     ForLoop {
-        start: Box<AST>, // x in x..y
-        end: Box<AST>, // y in x..y
-        index_name: String, // n like in "for n = 1..10"
+        start: Box<AST>,
+        end: Box<AST>,
+        index_name: String,
         body: Vec<AST>,
         line: usize,
     },
 
-    // x..y, for loops
-    Range {
-        left: Box<AST>,
-        right: Box<AST>,
-        line: usize,
-    },
+    Range(Box<AST>, Box<AST>),
 
-    Exists {
-        value: Box<AST>,
-        line: usize,
-    },
-
-    IsEqual {
-        left: Box<AST>,
-        right: Box<AST>,
-        line: usize,
-    },
-
-    LessThan {
-        left: Box<AST>,
-        right: Box<AST>,
-        line: usize,
-    },
-
-    GreaterThan {
-        left: Box<AST>,
-        right: Box<AST>,
-        line: usize,
-    },
-
-    LessThanOrEqual {
-        left: Box<AST>,
-        right: Box<AST>,
-        line: usize,
-    },
-
-    GreaterThanOrEqual {
-        left: Box<AST>,
-        right: Box<AST>,
-        line: usize,
-    },
-
-    IsUnequal {
-        left: Box<AST>,
-        right: Box<AST>,
-        line: usize,
-    },
-
-    Addition {
-        left: Box<AST>,
-        right: Box<AST>,
-        line: usize,
-    },
-
-    Subtraction {
-        left: Box<AST>,
-        right: Box<AST>,
-        line: usize,
-    },
+    Exists(Box<AST>),
+    IsEqual(Box<AST>, Box<AST>),
+    IsUnequal(Box<AST>, Box<AST>),
+    LessThan(Box<AST>, Box<AST>),
+    GreaterThan(Box<AST>, Box<AST>),
+    LessThanOrEqual(Box<AST>, Box<AST>),
+    GreaterThanOrEqual(Box<AST>, Box<AST>),
+    Addition(Box<AST>, Box<AST>),
+    Subtraction(Box<AST>, Box<AST>),
 
     Identifer(String),
     Integer(i64),
     String(String),
     Boolean(bool),
     Float(f64),
+
     Null,
     Semicolon,
     Lparen,
@@ -166,7 +116,6 @@ pub enum AST {
 impl std::fmt::Display for AST {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            // TODO: Implement more
             AST::String(s) => { 
                 let mut s = s.replace("\\t", "\t")
                     .replace("\\n", "\n")
@@ -189,27 +138,6 @@ impl std::fmt::Display for AST {
             AST::Null => write!(f, "null"),
 
             AST::Object { properties, line: _ } => {
-                if properties.contains_key(array::IDENTITY) && properties[array::IDENTITY].clone() == AST::String("array".to_string()) {
-                    write!(f, "[")?;
-
-                    let mut str = String::new();
-                    
-
-                    for i in 0..properties.len() {
-                        if properties.contains_key(&format!("{}", i)) {
-                            str.push_str(&format!("{}, ", properties[&format!("{}", i)]));
-                        }
-                    }
-
-                    if str.len() > 0 {
-                        write!(f, "{}", &str[..str.len() - 2])?;
-                    }
-
-                    write!(f, "]")?;
-
-                    return Ok(());
-                }
-
                 write!(f, "{{ ")?;
 
                 if properties.len() as i32 - crate::packages::json::BUILTINS.len() as i32 == 0 {
@@ -241,6 +169,32 @@ impl std::fmt::Display for AST {
                     write!(f, " }}")?;
                 }
                 
+                Ok(())
+            }
+
+            AST::Array(elements) => {
+                write!(f, "[")?;
+
+                let mut str = String::new();
+
+                for element in elements {
+                    match element {
+                        AST::String(s) => {
+                            str.push_str(&format!("\"{}\", ", s.replace("\"", "\\\"").replace("\n", "\\n").replace("\t", "\\t")));
+                        }
+
+                        _ => {
+                            str.push_str(&format!("{}, ", element));
+                        }
+                    }
+                }
+
+                if str.len() > 0 {
+                    write!(f, "{}", &str[..str.len() - 2])?;
+                }
+
+                write!(f, "]")?;
+
                 Ok(())
             }
 

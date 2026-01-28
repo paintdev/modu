@@ -8,6 +8,7 @@ mod utils;
 mod internal;
 mod cli;
 mod packages;
+mod functions;
 
 
 fn main() {
@@ -38,7 +39,7 @@ fn main() {
         "install" => cli::install::install(),
         "uninstall" => cli::uninstall::uninstall(),
         "--version" => {
-            println!("Modu v1.2.0");
+            println!("Modu v1.3.0");
         }
 
         action => {

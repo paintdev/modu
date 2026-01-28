@@ -125,3 +125,18 @@ pub fn str(args: Vec<AST>, context: &mut HashMap<String, AST>) -> Result<(AST, A
 pub fn exit(_: Vec<AST>, _: &mut HashMap<String, AST>) -> Result<(AST, AST), String> {
     std::process::exit(0);
 }
+
+pub fn len(args: Vec<AST>, context: &mut HashMap<String, AST>) -> Result<(AST, AST), String> {
+        match eval(args[0].clone(), context) {
+            Ok(v) => {
+                match v {
+                    AST::String(value) => Ok((AST::Integer(value.chars().count() as i64), AST::Null)),
+                    AST::Array(elements) => Ok((AST::Integer(elements.len() as i64), AST::Null)),
+                    AST::Object { properties, line: _ } => Ok((AST::Integer(properties.len() as i64 - crate::packages::json::BUILTINS.len() as i64), AST::Null)),
+                    _ => Err(format!("len() does not support type {}", v))
+                }
+            }
+
+            Err(e) => Err(e)
+        }
+}

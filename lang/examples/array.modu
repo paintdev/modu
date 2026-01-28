@@ -1,20 +1,23 @@
-import "array" as array;
+let a = "hello, world";
 
-let a = array.new();
-print(a);
+let array = [a, 1, 1.5, true, null];
+print("Array: ", array);
 
-a.push(1);
-a.push(true);
-a.push("hello");
-print(a);
+print("First element: ", array[0]);
 
-a.pop();
-print(a.shift());
+let length = len(array);
+print("Array length: ", length);
 
-print(a);
+let b = length - 1;
+for i = 0..b {
+    print("Element ", i, ": ", array[i]);
+}
 
-print(a.length);
-print(a.at(0));
-a.unshift(12345);
-print(a);
-print(a.at(0));
+array.clear();
+print("after array.clear: ", array);
+
+array.push("new element");
+print("after array.push: ", array);
+
+print("array.pop(): ", array.pop());
+print("after array.pop: ", array);

@@ -18,14 +18,14 @@ export default {
             "icon": FileBox,
         },
         {
-            "path": "math",
-            "title": "Math",
-            "icon": Equal,
-        },
-        {
             "path": "libraries",
             "title": "Libraries",
             "icon": Library,
+        },
+        {
+            "path": "math",
+            "title": "Math",
+            "icon": Equal,
         },
         {
             "path": "file",

@@ -29,7 +29,7 @@ pub fn eval(expr: AST, context: &mut HashMap<String, AST>) -> Result<AST, String
                                                 return Err("Maximum recursion depth exceeded".to_string());
                                             }
 
-                                            if let AST::Return { value, line: _ } = expr {
+                                            if let AST::Return(value) = expr {
                                                 return eval(*value.clone(), &mut new_context);
                                             }
 
@@ -37,7 +37,7 @@ pub fn eval(expr: AST, context: &mut HashMap<String, AST>) -> Result<AST, String
 
                                             let ast: AST = eval(expr.clone(), &mut new_context)?;
 
-                                            if let AST::Return { value, line: _ } = ast {
+                                            if let AST::Return(value) = ast {
                                                 return Ok(*value);
                                             }
                                         }
@@ -249,13 +249,13 @@ pub fn eval(expr: AST, context: &mut HashMap<String, AST>) -> Result<AST, String
                                                         }
 
                                                         for expr in body {
-                                                            if let AST::Return { value, line: _ } = expr {
+                                                            if let AST::Return(value) = expr {
                                                                 return eval(*value.clone(), &mut new_context);
                                                             }
 
                                                             let ast = eval(expr.clone(), &mut new_context)?;
 
-                                                            if let AST::Return { value, line: _ } = ast {
+                                                            if let AST::Return(value) = ast {
                                                                 return Ok(*value);
                                                             }
                                                         }
@@ -304,10 +304,26 @@ pub fn eval(expr: AST, context: &mut HashMap<String, AST>) -> Result<AST, String
                                     }
                                 }
 
-                                AST::FFILibrary { path, lib } => {
+                                AST::FFILibrary { path: _, lib } => {
                                     let result = crate::packages::ffi::execute_ffi_call(lib.clone(), property.as_ref().unwrap(), args, context)?;
 
                                     return Ok(result);
+                                }
+
+                                AST::Array(elements) => {
+                                    let result = crate::functions::array::handle_function(
+                                        elements, 
+                                        property.as_ref().unwrap().clone(),
+                                        args,
+                                    )?;
+
+                                    if let AST::Null = result.1 {
+                                        
+                                    } else {
+                                        context.insert(object.unwrap(), result.1);
+                                    }
+
+                                    return Ok(result.0);
                                 }
 
                                 _ => {
@@ -332,7 +348,7 @@ pub fn eval(expr: AST, context: &mut HashMap<String, AST>) -> Result<AST, String
             return Ok(AST::Break);
         }
 
-        AST::Loop { body, line } => {
+        AST::Loop { body, line: _ } => {
             'outer: loop {
                 for expr in &body {
                     let result = eval(expr.clone(), context)?;
@@ -344,7 +360,7 @@ pub fn eval(expr: AST, context: &mut HashMap<String, AST>) -> Result<AST, String
             }
         }
 
-        AST::ForLoop { start, end, index_name, body, line } => {
+        AST::ForLoop { start, end, index_name, body, line: _ } => {
             let start_val = match eval(*start, context)? {
                 AST::Integer(i) => i,
                 v => {
@@ -374,7 +390,7 @@ pub fn eval(expr: AST, context: &mut HashMap<String, AST>) -> Result<AST, String
             context.remove(&index_name);
         }
 
-        AST::IsEqual { left, right, line: _ } => {
+        AST::IsEqual(left, right) => {
             match (eval(*left, context)?, eval(*right, context)?) {
                 (AST::Integer(l), AST::Integer(r)) => {
                     return Ok(AST::Boolean(l == r));
@@ -398,7 +414,7 @@ pub fn eval(expr: AST, context: &mut HashMap<String, AST>) -> Result<AST, String
             }
         }
 
-        AST::IsUnequal { left, right, line: _ } => {
+        AST::IsUnequal(left, right) => {
             match (eval(*left, context)?, eval(*right, context)?) {
                 (AST::Integer(l), AST::Integer(r)) => {
                     return Ok(AST::Boolean(l != r));
@@ -422,7 +438,7 @@ pub fn eval(expr: AST, context: &mut HashMap<String, AST>) -> Result<AST, String
             }
         }
 
-        AST::LessThan { left, right, line: _ } => {
+        AST::LessThan( left, right ) => {
             match (eval(*left, context)?, eval(*right, context)?) {
                 (AST::Integer(l), AST::Integer(r)) => {
                     return Ok(AST::Boolean(l < r));
@@ -438,7 +454,7 @@ pub fn eval(expr: AST, context: &mut HashMap<String, AST>) -> Result<AST, String
             }
         }
 
-        AST::GreaterThan { left, right, line: _ } => {
+        AST::GreaterThan(left, right) => {
             match (eval(*left, context)?, eval(*right, context)?) {
                 (AST::Integer(l), AST::Integer(r)) => {
                     return Ok(AST::Boolean(l > r));
@@ -454,7 +470,7 @@ pub fn eval(expr: AST, context: &mut HashMap<String, AST>) -> Result<AST, String
             }
         }
 
-        AST::LessThanOrEqual { left, right, line: _ } => {
+        AST::LessThanOrEqual(left, right) => {
             match (eval(*left, context)?, eval(*right, context)?) {
                 (AST::Integer(l), AST::Integer(r)) => {
                     return Ok(AST::Boolean(l <= r));
@@ -470,7 +486,7 @@ pub fn eval(expr: AST, context: &mut HashMap<String, AST>) -> Result<AST, String
             }
         }
 
-        AST::GreaterThanOrEqual { left, right, line: _ } => {
+        AST::GreaterThanOrEqual(left, right) => {
             match (eval(*left, context)?, eval(*right, context)?) {
                 (AST::Integer(l), AST::Integer(r)) => {
                     return Ok(AST::Boolean(l >= r));
@@ -486,7 +502,7 @@ pub fn eval(expr: AST, context: &mut HashMap<String, AST>) -> Result<AST, String
             }
         }
 
-        AST::Exists { value, line: _ } => {
+        AST::Exists(value) => {
             match eval(*value, context)? {
                 AST::Null => {
                     return Ok(AST::Boolean(false));
@@ -509,7 +525,7 @@ pub fn eval(expr: AST, context: &mut HashMap<String, AST>) -> Result<AST, String
                         for expr in body {
                             let result = eval(expr, context)?;
 
-                            if let AST::Return { value, line: _ } = result {
+                            if let AST::Return(value) = result {
                                 return Ok(*value);
                             } else if let AST::Break = result {
                                 return Ok(AST::Break);
@@ -532,7 +548,7 @@ pub fn eval(expr: AST, context: &mut HashMap<String, AST>) -> Result<AST, String
             return Ok(AST::String(value.replace("\"", "").replace("\\n", "\n").replace("\\t", "\t")));
         }
 
-        AST::Addition { left, right, line: _ } => {
+        AST::Addition(left, right) => {
             match (eval(*left.clone(), context)?, eval(*right.clone(), context)?) {
                 (AST::Integer(l), AST::Integer(r)) => {
                     return Ok(AST::Integer(l + r));
@@ -560,7 +576,7 @@ pub fn eval(expr: AST, context: &mut HashMap<String, AST>) -> Result<AST, String
             }
         }
 
-        AST::Subtraction { left, right, line: _ } => {
+        AST::Subtraction(left, right) => {
             match (eval(*left.clone(), context)?, eval(*right.clone(), context)?) {
                 (AST::Integer(l), AST::Integer(r)) => {
                     return Ok(AST::Integer(l - r));
@@ -613,19 +629,57 @@ pub fn eval(expr: AST, context: &mut HashMap<String, AST>) -> Result<AST, String
         }
 
         AST::PropertyAccess { object, property, line: _ } => {
+            let evaluated_property = eval(*property.clone(), context)?;
+
             match object {
                 Some(name) => {
                     match context.get(&name) {
                         Some(value) => {
                             match value {
                                 AST::Object { properties, line: _ } => {
-                                    match properties.get(property.as_ref().unwrap()) {
-                                        Some(value) => {
-                                            return Ok(value.clone());
+                                    match *property {
+                                        AST::Identifer(prop_name) => {
+                                            match properties.get(&prop_name) {
+                                                Some(value) => {
+                                                    return Ok(value.clone());
+                                                }
+
+                                                None => {
+                                                    return Err(format!("Property {} not found in object {}", prop_name, name));
+                                                }
+                                            }
                                         }
 
-                                        None => {
-                                            return Err(format!("Property {:?} not found", property));
+                                        AST::String(prop_name) => {
+                                            match properties.get(&prop_name) {
+                                                Some(value) => {
+                                                    return Ok(value.clone());
+                                                }
+
+                                                None => {
+                                                    return Err(format!("Property {} not found in object {}", prop_name, name));
+                                                }
+                                            }
+                                        }
+
+                                        v => {
+                                            return Err(format!("Property name must be a string or identifier, got {:?}", v));
+                                        }
+                                    }
+                                }
+
+                                AST::Array(elements) => {
+                                    match evaluated_property {
+                                        AST::Integer(index) => {
+                                            if index < 0 || (index as usize) >= elements.len() {
+                                                return Err(format!("Index {} out of bounds for array of length {}", index, elements.len()));
+                                            }
+
+                                            return Ok(elements[index as usize].clone());
+                                        }
+
+                                        _ => {
+                                            return Err("Array index must be an integer".to_string());
                                         }
                                     }
                                 }
@@ -648,8 +702,18 @@ pub fn eval(expr: AST, context: &mut HashMap<String, AST>) -> Result<AST, String
             }
         }
 
-        AST::Return { value, line: _ } => {
+        AST::Return(value) => {
             return Ok(*value);
+        }
+
+        AST::Array(elements) => {
+            let mut evaluated_elements: Vec<AST> = vec![];
+
+            for element in elements {
+                evaluated_elements.push(eval(element, context)?);
+            }
+
+            return Ok(AST::Array(evaluated_elements));
         }
 
         _ => {
@@ -694,7 +758,7 @@ mod tests {
     fn addition() {
         let mut context = crate::utils::create_context();
 
-        let expr = AST::Addition { left: Box::new(AST::Integer(1)), right: Box::new(AST::Integer(2)), line: 0 };
+        let expr = AST::Addition(Box::new(AST::Integer(1)), Box::new(AST::Integer(2)));
 
         assert_eq!(eval(expr, &mut context).unwrap(), AST::Integer(3));
     }
@@ -703,7 +767,7 @@ mod tests {
     fn subtraction() {
         let mut context = crate::utils::create_context();
 
-        let expr = AST::Subtraction { left: Box::new(AST::Integer(1)), right: Box::new(AST::Integer(2)), line: 0 };
+        let expr = AST::Subtraction(Box::new(AST::Integer(1)), Box::new(AST::Integer(2)));
 
         assert_eq!(eval(expr, &mut context).unwrap(), AST::Integer(-1));
     }
@@ -712,7 +776,7 @@ mod tests {
     fn negative_num() {
         let mut context = crate::utils::create_context();
 
-        let expr = AST::Subtraction { left: Box::new(AST::Null), right: Box::new(AST::Integer(2)), line: 0 };
+        let expr = AST::Subtraction(Box::new(AST::Null), Box::new(AST::Integer(2)));
 
         assert_eq!(eval(expr, &mut context).unwrap(), AST::Integer(-2));
     }
@@ -721,7 +785,7 @@ mod tests {
     fn join_strings() {
         let mut context = crate::utils::create_context();
 
-        let expr = AST::Addition { left: Box::new(AST::String("Hello,".to_string())), right: Box::new(AST::String(" World!".to_string())), line: 0 };
+        let expr = AST::Addition(Box::new(AST::String("Hello, ".to_string())), Box::new(AST::String("World!".to_string())));
 
         assert_eq!(eval(expr, &mut context).unwrap(), AST::String("Hello, World!".to_string()));
     }
@@ -730,7 +794,7 @@ mod tests {
     fn add_floats() {
         let mut context = crate::utils::create_context();
 
-        let expr = AST::Addition { left: Box::new(AST::Float(1.0)), right: Box::new(AST::Float(2.0)), line: 0 };
+        let expr = AST::Addition(Box::new(AST::Float(1.0)), Box::new(AST::Float(2.0)));
 
         assert_eq!(eval(expr, &mut context).unwrap(), AST::Float(3.0));
     }
@@ -739,7 +803,7 @@ mod tests {
     fn add_float_and_int() {
         let mut context = crate::utils::create_context();
 
-        let expr = AST::Addition { left: Box::new(AST::Float(1.0)), right: Box::new(AST::Integer(2)), line: 0 };
+        let expr = AST::Addition(Box::new(AST::Float(1.0)), Box::new(AST::Integer(2)));
 
         assert_eq!(eval(expr, &mut context).unwrap(), AST::Float(3.0));
     }
@@ -748,7 +812,7 @@ mod tests {
     fn add_int_and_string() {
         let mut context = crate::utils::create_context();
 
-        let expr = AST::Addition { left: Box::new(AST::Integer(1)), right: Box::new(AST::String("cookie".to_string())), line: 0 };
+        let expr = AST::Addition(Box::new(AST::Integer(1)), Box::new(AST::String("cookie".to_string())));
 
         match eval(expr, &mut context) {
             Ok(_) => {

@@ -211,6 +211,59 @@ pub fn insert_right_bracket(obj: AST) -> AST {
     }
 }
 
+pub fn insert_right_square_bracket(obj: AST) -> AST {
+    match obj {
+        AST::Array(elements) => {
+            AST::Array(elements)
+        }
+
+        AST::Call { name, mut args, line } => {
+            let last = args.pop().unwrap_or(AST::Null);
+
+            match last {
+                AST::Array(elements) => {
+                    args.push(AST::Array(elements));
+                }
+
+                val => {
+                    args.push(val);
+                }
+            }
+
+            return AST::Call {
+                name,
+                args,
+                line,
+            };
+        }
+
+        AST::PropertyCall { object, property, mut args, line } => {
+            let last = args.pop().unwrap_or(AST::Null);
+
+            match last {
+                AST::Array(elements) => {
+                    args.push(AST::Array(elements));
+                }
+
+                val => {
+                    args.push(val);
+                }
+            }
+
+            return AST::PropertyCall {
+                object,
+                property,
+                args,
+                line,
+            };
+        }
+
+        _ => {
+            return obj;
+        }
+    }
+}
+
 pub fn handle_nested_ast(mut ast: Vec<AST>, temp_ast: Vec<AST>, current_line: usize) -> Result<Vec<AST>, (String, usize)> {
     if ast.is_empty() {
         return Ok(temp_ast);
@@ -703,27 +756,25 @@ pub fn handle_nested_arguments(last: AST, arg: AST) -> Result<AST, (String, usiz
                         AST::Rparen => {
                             match arg {
                                 AST::Plus => {
-                                    args.push(AST::Addition {
-                                        left: Box::new(AST::Call {
+                                    args.push(AST::Addition(
+                                        Box::new(AST::Call {
                                             name: inner_name.clone(),
                                             args: inner_args,
                                             line: inner_line,
                                         }),
-                                        right: Box::new(AST::Null),
-                                        line,
-                                    });
+                                        Box::new(AST::Null),
+                                    ));
                                 }
 
                                 AST::Minus => {
-                                    args.push(AST::Subtraction {
-                                        left: Box::new(AST::Call {
+                                    args.push(AST::Subtraction(
+                                        Box::new(AST::Call {
                                             name: inner_name.clone(),
                                             args: inner_args,
                                             line: inner_line,
                                         }),
-                                        right: Box::new(AST::Null),
-                                        line,
-                                    });
+                                        Box::new(AST::Null),
+                                    ));
                                 }
 
                                 _ => {
@@ -757,29 +808,27 @@ pub fn handle_nested_arguments(last: AST, arg: AST) -> Result<AST, (String, usiz
                 AST::Rparen => {
                     match arg {
                         AST::Plus => {
-                            args.push(AST::Addition {
-                                left: Box::new(AST::PropertyCall {
+                            args.push(AST::Addition(
+                                Box::new(AST::PropertyCall {
                                     object,
                                     property,
                                     args: inner_args,
                                     line: inner_line,
                                 }),
-                                right: Box::new(AST::Null),
-                                line,
-                            });
+                                Box::new(AST::Null),
+                            ));
                         }
 
                         AST::Minus => {
-                            args.push(AST::Subtraction {
-                                left: Box::new(AST::PropertyCall {
+                            args.push(AST::Subtraction(
+                                Box::new(AST::PropertyCall {
                                     object,
                                     property,
                                     args: inner_args,
                                     line: inner_line,
                                 }),
-                                right: Box::new(AST::Null),
-                                line,
-                            });
+                                Box::new(AST::Null),
+                            ));
                         }
 
                         _ => {
@@ -826,7 +875,15 @@ pub fn handle_nested_arguments(last: AST, arg: AST) -> Result<AST, (String, usiz
         (AST::PropertyAccess { object, property: _, line }, AST::Identifer(name)) => {
             args.push(AST::PropertyAccess {
                 object,
-                property: Some(name.clone()),
+                property: Box::new(AST::Identifer(name)),
+                line,
+            });
+        }
+
+        (AST::PropertyAccess { object, property: _, line }, AST::Integer(index)) => {
+            args.push(AST::PropertyAccess {
+                object,
+                property: Box::new(AST::Integer(index)),
                 line,
             });
         }
@@ -834,7 +891,11 @@ pub fn handle_nested_arguments(last: AST, arg: AST) -> Result<AST, (String, usiz
         (AST::PropertyAccess { object, property, line }, AST::Lparen) => {
             args.push(AST::PropertyCall {
                 object,
-                property,
+                property: if let AST::Identifer(name) = *property {
+                    Some(name)
+                } else {
+                    None
+                },
                 args: vec![],
                 line,
             });
@@ -847,7 +908,7 @@ pub fn handle_nested_arguments(last: AST, arg: AST) -> Result<AST, (String, usiz
         (AST::Identifer(ident), AST::Dot) => {
             args.push(AST::PropertyAccess {
                 object: Some(ident.clone()),
-                property: None,
+                property: Box::new(AST::Null),
                 line,
             });
         }
@@ -860,27 +921,24 @@ pub fn handle_nested_arguments(last: AST, arg: AST) -> Result<AST, (String, usiz
             if val == AST::Comma {
                 args.push(val);
 
-                args.push(AST::Subtraction {
-                    left: Box::new(AST::Null),
-                    right: Box::new(AST::Null),
-                    line,
-                });
+                args.push(AST::Subtraction(
+                    Box::new(AST::Null),
+                    Box::new(AST::Null),
+                ));
             } else {
-                args.push(AST::Subtraction {
-                    left: Box::new(val),
-                    right: Box::new(AST::Null),
-                    line,
-                });
+                args.push(AST::Subtraction(
+                    Box::new(val),
+                    Box::new(AST::Null),
+                ));
             }
         }
 
-        (AST::Subtraction { left, right, line }, val) => {
+        (AST::Subtraction(left, right), val) => {
             if *right == AST::Null && val != AST::Comma {
-                args.push(AST::Subtraction {
+                args.push(AST::Subtraction(
                     left,
-                    right: Box::new(val),
-                    line,
-                });
+                    Box::new(val),
+                ));
             } else {
                 if last_arg != AST::Null {
                     args.push(last_arg);
@@ -891,11 +949,10 @@ pub fn handle_nested_arguments(last: AST, arg: AST) -> Result<AST, (String, usiz
         }
 
         (AST::Minus, _) => {
-            args.push(AST::Subtraction {
-                left: Box::new(AST::Null),
-                right: Box::new(arg),
-                line,
-            });
+            args.push(AST::Subtraction(
+                Box::new(AST::Null),
+                Box::new(arg),
+            ));
         }
 
         (val, AST::Plus) => {
@@ -926,23 +983,21 @@ pub fn handle_nested_arguments(last: AST, arg: AST) -> Result<AST, (String, usiz
                 }
 
                 _ => {
-                    args.push(AST::Addition {
-                        left: Box::new(val),
-                        right: Box::new(AST::Null),
-                        line,
-                    });
+                    args.push(AST::Addition(
+                        Box::new(val),
+                        Box::new(AST::Null),
+                    ));
                 }
             }
         }
 
         
-        (AST::Addition { left, right, line }, val) => {
+        (AST::Addition(left, right), val) => {
             if *right == AST::Null && arg != AST::Comma {
-                args.push(AST::Addition {
+                args.push(AST::Addition(
                     left,
-                    right: Box::new(val),
-                    line,
-                });
+                    Box::new(val),
+                ));
             } else {
                 if last_arg != AST::Null {
                     args.push(last_arg);
@@ -1116,20 +1171,18 @@ pub fn clean_args(obj: AST) -> AST {
             }
         }
 
-        AST::Addition { left, right, line } => {
-            AST::Addition {
-                left: Box::new(clean_args(*left)),
-                right: Box::new(clean_args(*right)),
-                line,
-            }
+        AST::Addition(left, right) => {
+            AST::Addition(
+                Box::new(clean_args(*left)),
+                Box::new(clean_args(*right)),
+            )
         }
 
-        AST::Subtraction { left, right, line } => {
-            AST::Subtraction {
-                left: Box::new(clean_args(*left)),
-                right: Box::new(clean_args(*right)),
-                line,
-            }
+        AST::Subtraction(left, right) => {
+            AST::Subtraction(
+                Box::new(clean_args(*left)),
+                Box::new(clean_args(*right)),
+            )
         }
 
         _ => obj
@@ -1271,19 +1324,17 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
 
                     match value {
                         AST::Identifer(name) => {
-                            temp_ast.push(AST::Range {
-                                left: Box::new(AST::Identifer(name)),
-                                right: Box::new(AST::Null),
-                                line: current_line,
-                            });
+                            temp_ast.push(AST::Range(
+                                Box::new(AST::Identifer(name)),
+                                Box::new(AST::Null),
+                            ));
                         }
 
                         AST::Integer(n) => {
-                            temp_ast.push(AST::Range {
-                                left: Box::new(AST::Integer(n)),
-                                right: Box::new(AST::Null),
-                                line: current_line,
-                            });
+                            temp_ast.push(AST::Range(
+                                Box::new(AST::Integer(n)),
+                                Box::new(AST::Null),
+                            ));
                         }
 
                         _ => {
@@ -1309,51 +1360,45 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                 AST::IfStatement { mut condition, body, line } => {
                                     condition = match token {
                                         Ok(Token::IsEqual) => {
-                                            Box::new(AST::IsEqual {
-                                                left: Box::new(value),
-                                                right: Box::new(AST::Null),
-                                                line,
-                                            })
+                                            Box::new(AST::IsEqual(
+                                                Box::new(value),
+                                                Box::new(AST::Null),
+                                            ))
                                         }
 
                                         Ok(Token::IsUnequal) => {
-                                            Box::new(AST::IsUnequal {
-                                                left: Box::new(value),
-                                                right: Box::new(AST::Null),
-                                                line,
-                                            })
+                                            Box::new(AST::IsUnequal(
+                                                Box::new(value),
+                                                Box::new(AST::Null),
+                                            ))
                                         }
 
                                         Ok(Token::LessThan) => {
-                                            Box::new(AST::LessThan { 
-                                                left: Box::new(value),
-                                                right: Box::new(AST::Null),
-                                                line,
-                                            })
+                                            Box::new(AST::LessThan(
+                                                Box::new(value),
+                                                Box::new(AST::Null),
+                                            ))
                                         }
 
                                         Ok(Token::GreaterThan) => {
-                                            Box::new(AST::GreaterThan { 
-                                                left: Box::new(value),
-                                                right: Box::new(AST::Null),
-                                                line,
-                                            })
+                                            Box::new(AST::GreaterThan( 
+                                                Box::new(value),
+                                                Box::new(AST::Null),
+                                            ))
                                         }
 
                                         Ok(Token::LessThanOrEqual) => {
-                                            Box::new(AST::LessThanOrEqual { 
-                                                left: Box::new(value),
-                                                right: Box::new(AST::Null),
-                                                line,
-                                            })
+                                            Box::new(AST::LessThanOrEqual( 
+                                                Box::new(value),
+                                                Box::new(AST::Null),
+                                            ))
                                         }
 
                                         Ok(Token::GreaterThanOrEqual) => {
-                                            Box::new(AST::GreaterThanOrEqual { 
-                                                left: Box::new(value),
-                                                right: Box::new(AST::Null),
-                                                line,
-                                            })
+                                            Box::new(AST::GreaterThanOrEqual(
+                                                Box::new(value),
+                                                Box::new(AST::Null),
+                                            ))
                                         }
 
                                         Ok(_) => {
@@ -1387,7 +1432,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                         AST::Identifer(name) => {
                             temp_ast.push(AST::PropertyAccess {
                                 object: Some(name),
-                                property: None,
+                                property: Box::new(AST::Null),
                                 line: current_line,
                             });
                         }
@@ -1439,7 +1484,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                         name,
                                         value: Box::new(AST::PropertyAccess {
                                             object: Some(ident),
-                                            property: None,
+                                            property: Box::new(AST::Null),
                                             line,
                                         }),
                                         line,
@@ -1487,14 +1532,14 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                     }
                 }
     
-                Ok(Token::Identifer) => {
+                Ok(Token::Identifer(s)) => {
                     let last = temp_ast.pop().unwrap_or(AST::Null);
                     
                     match last {
                         AST::Import { file, as_: _, line } => {
                             temp_ast.push(AST::Import {
                                 file,
-                                as_: Some(lexer.slice().to_string()),
+                                as_: Some(s.clone()),
                                 line,
                             });
                         }
@@ -1502,7 +1547,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                         AST::LetDeclaration { name, value, line } => {
                             if name.is_none() {
                                 temp_ast.push(AST::LetDeclaration {
-                                    name: Some(lexer.slice().to_string()),
+                                    name: Some(s.clone()),
                                     value,
                                     line,
                                 });
@@ -1513,31 +1558,29 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                     AST::Null => {
                                         temp_ast.push(AST::LetDeclaration {
                                             name,
-                                            value: Box::new(AST::Identifer(lexer.slice().to_string())),
+                                            value: Box::new(AST::Identifer(s)),
                                             line,
                                         });
                                     }
 
-                                    AST::Addition { left, right: _, line } => {
+                                    AST::Addition(left, _) => {
                                         temp_ast.push(AST::LetDeclaration {
                                             name,
-                                            value: Box::new(AST::Addition {
+                                            value: Box::new(AST::Addition(
                                                 left,
-                                                right: Box::new(AST::Identifer(lexer.slice().to_string())),
-                                                line,
-                                            }),
+                                                Box::new(AST::Identifer(s)),
+                                            )),
                                             line,
                                         });
                                     }
 
-                                    AST::Subtraction { left, right: _, line } => {
+                                    AST::Subtraction(left, _) => {
                                         temp_ast.push(AST::LetDeclaration {
                                             name,
-                                            value: Box::new(AST::Subtraction {
+                                            value: Box::new(AST::Subtraction(
                                                 left,
-                                                right: Box::new(AST::Identifer(lexer.slice().to_string())),
-                                                line,
-                                            }),
+                                                Box::new(AST::Identifer(s)),
+                                            )),
                                             line,
                                         });
                                     }
@@ -1547,7 +1590,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                             name,
                                             value: Box::new(AST::PropertyAccess {
                                                 object,
-                                                property: Some(lexer.slice().to_string()),
+                                                property: Box::new(AST::Identifer(s)),
                                                 line,
                                             }),
                                             line,
@@ -1559,7 +1602,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                             name: call_name,
                                             args,
                                             line,
-                                        }, AST::Identifer(lexer.slice().to_string()))?;
+                                        }, AST::Identifer(s))?;
 
                                         temp_ast.push(AST::LetDeclaration {
                                             name,
@@ -1574,11 +1617,21 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                             property,
                                             args,
                                             line,
-                                        }, AST::Identifer(lexer.slice().to_string()))?;
+                                        }, AST::Identifer(s))?;
 
                                         temp_ast.push(AST::LetDeclaration {
                                             name,
                                             value: Box::new(new_call),
+                                            line,
+                                        });
+                                    }
+
+                                    AST::Array(mut elements) => {
+                                        elements.push(AST::Identifer(s));
+
+                                        temp_ast.push(AST::LetDeclaration {
+                                            name,
+                                            value: Box::new(AST::Array(elements)),
                                             line,
                                         });
                                     }
@@ -1597,25 +1650,23 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                 AST::PropertyAccess { object, property: _, line } => {
                                     args.push(AST::PropertyAccess {
                                         object,
-                                        property: Some(lexer.slice().to_string()),
+                                        property: Box::new(AST::Identifer(s)),
                                         line,
                                     });
                                 }
 
-                                AST::Addition { left, right: _, line } => {
-                                    args.push(AST::Addition {
+                                AST::Addition(left, _) => {
+                                    args.push(AST::Addition(
                                         left,
-                                        right: Box::new(AST::Identifer(lexer.slice().to_string())),
-                                        line,
-                                    });
+                                        Box::new(AST::Identifer(s)),
+                                    ));
                                 }
 
-                                AST::Subtraction { left, right: _, line } => {
-                                    args.push(AST::Subtraction {
+                                AST::Subtraction(left, _) => {
+                                    args.push(AST::Subtraction(
                                         left,
-                                        right: Box::new(AST::Identifer(lexer.slice().to_string())),
-                                        line,
-                                    });
+                                        Box::new(AST::Identifer(s)),
+                                    ));
                                 }
 
                                 AST::Call { name: call_name, args: arg_args, line } => {
@@ -1623,7 +1674,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                         name: call_name,
                                         args: arg_args,
                                         line,
-                                    }, AST::Identifer(lexer.slice().to_string()))?;
+                                    }, AST::Identifer(s))?;
 
                                     args.push(new_call);
                                 }
@@ -1634,19 +1685,19 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                         property,
                                         args: property_args,
                                         line,
-                                    }, AST::Identifer(lexer.slice().to_string()))?;
+                                    }, AST::Identifer(s))?;
 
                                     args.push(new_call);
                                 }
 
                                 AST::Null => {
-                                    args.push(AST::Identifer(lexer.slice().to_string()));
+                                    args.push(AST::Identifer(s));
                                 }
 
                                 _ => {
                                     args.push(value);
 
-                                    args.push(AST::Identifer(lexer.slice().to_string()));
+                                    args.push(AST::Identifer(s));
                                 }
                             }
 
@@ -1664,25 +1715,23 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                 AST::PropertyAccess { object, property: _, line } => {
                                     args.push(AST::PropertyAccess {
                                         object,
-                                        property: Some(lexer.slice().to_string()),
+                                        property: Box::new(AST::Identifer(s)),
                                         line,
                                     });
                                 }
 
-                                AST::Addition { left, right: _, line } => {
-                                    args.push(AST::Addition {
+                                AST::Addition(left, _) => {
+                                    args.push(AST::Addition(
                                         left,
-                                        right: Box::new(AST::Identifer(lexer.slice().to_string())),
-                                        line,
-                                    });
+                                        Box::new(AST::Identifer(s)),
+                                    ));
                                 }
 
-                                AST::Subtraction { left, right: _, line } => {
-                                    args.push(AST::Subtraction {
+                                AST::Subtraction(left, _) => {
+                                    args.push(AST::Subtraction(
                                         left,
-                                        right: Box::new(AST::Identifer(lexer.slice().to_string())),
-                                        line,
-                                    });
+                                        Box::new(AST::Identifer(s)),
+                                    ));
                                 }
 
                                 AST::Call { name: call_name, args: arg_args, line } => {
@@ -1690,7 +1739,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                         name: call_name,
                                         args: arg_args,
                                         line,
-                                    }, AST::Identifer(lexer.slice().to_string()))?;
+                                    }, AST::Identifer(s))?;
 
                                     args.push(new_call);
                                 }
@@ -1701,18 +1750,18 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                         property,
                                         args: property_args,
                                         line,
-                                    }, AST::Identifer(lexer.slice().to_string()))?;
+                                    }, AST::Identifer(s))?;
 
                                     args.push(new_call);
                                 }
 
                                 AST::Null => {
-                                    args.push(AST::Identifer(lexer.slice().to_string()));
+                                    args.push(AST::Identifer(s));
                                 }
 
                                 _ => {
                                     args.push(arg);
-                                    args.push(AST::Identifer(lexer.slice().to_string()));
+                                    args.push(AST::Identifer(s));
                                 }
                             }
 
@@ -1727,13 +1776,13 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                         AST::Function { name, mut args, body, line } => {
                             if name.is_empty() {
                                 temp_ast.push(AST::Function {
-                                    name: lexer.slice().to_string(),
+                                    name: s,
                                     args,
                                     body,
                                     line,
                                 });
                             } else {
-                                args.push(lexer.slice().to_string());
+                                args.push(s);
 
                                 temp_ast.push(AST::Function {
                                     name,
@@ -1747,7 +1796,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                         AST::PropertyAccess { object, property: _, line } => {
                             temp_ast.push(AST::PropertyAccess {
                                 object,
-                                property: Some(lexer.slice().to_string()),
+                                property: Box::new(AST::Identifer(s)),
                                 line,
                             });
                         }
@@ -1756,52 +1805,46 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                             let mut push_identifier = false;
 
                             match *condition {
-                                AST::IsEqual { left, right: _, line } => {
-                                    condition = Box::new(AST::IsEqual {
+                                AST::IsEqual(left, _) => {
+                                    condition = Box::new(AST::IsEqual(
                                         left,
-                                        right: Box::new(AST::Identifer(lexer.slice().to_string())),
-                                        line,
-                                    });
+                                        Box::new(AST::Identifer(s.clone())),
+                                    ));
                                 }
 
-                                AST::IsUnequal { left, right: _, line } => {
-                                    condition = Box::new(AST::IsUnequal {
+                                AST::IsUnequal(left, _) => {
+                                    condition = Box::new(AST::IsUnequal(
                                         left,
-                                        right: Box::new(AST::Identifer(lexer.slice().to_string())),
-                                        line,
-                                    });
+                                        Box::new(AST::Identifer(s.clone())),
+                                    ));
                                 }
 
-                                AST::LessThan { left, right: _, line } => {
-                                    condition = Box::new(AST::LessThan {
+                                AST::LessThan(left, _) => {
+                                    condition = Box::new(AST::LessThan(
                                         left,
-                                        right: Box::new(AST::Identifer(lexer.slice().to_string())),
-                                        line,
-                                    });
+                                        Box::new(AST::Identifer(s.clone())),
+                                    ));
                                 }
 
-                                AST::GreaterThan { left, right: _, line } => {
-                                    condition = Box::new(AST::GreaterThan {
+                                AST::GreaterThan(left, _) => {
+                                    condition = Box::new(AST::GreaterThan(
                                         left,
-                                        right: Box::new(AST::Identifer(lexer.slice().to_string())),
-                                        line,
-                                    });
+                                        Box::new(AST::Identifer(s.clone())),
+                                    ));
                                 }
 
-                                AST::LessThanOrEqual { left, right: _, line } => {
-                                    condition = Box::new(AST::LessThanOrEqual {
+                                AST::LessThanOrEqual(left, _) => {
+                                    condition = Box::new(AST::LessThanOrEqual(
                                         left,
-                                        right: Box::new(AST::Identifer(lexer.slice().to_string())),
-                                        line,
-                                    });
+                                        Box::new(AST::Identifer(s.clone())),
+                                    ));
                                 }
 
-                                AST::GreaterThanOrEqual { left, right: _, line } => {
-                                    condition = Box::new(AST::GreaterThanOrEqual {
+                                AST::GreaterThanOrEqual(left, _) => {
+                                    condition = Box::new(AST::GreaterThanOrEqual(
                                         left,
-                                        right: Box::new(AST::Identifer(lexer.slice().to_string())),
-                                        line,
-                                    });
+                                        Box::new(AST::Identifer(s.clone())),
+                                    ));
                                 }
 
                                 _ => {
@@ -1816,16 +1859,15 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                             });
 
                             if push_identifier {
-                                temp_ast.push(AST::Identifer(lexer.slice().to_string()));
+                                temp_ast.push(AST::Identifer(s));
                             }
                         }
 
-                        AST::Return { value, line } => {
+                        AST::Return(value) => {
                             if let AST::Null = *value {
-                                temp_ast.push(AST::Return {
-                                    value: Box::new(AST::Identifer(lexer.slice().to_string())),
-                                    line,
-                                });
+                                temp_ast.push(AST::Return(
+                                    Box::new(AST::Identifer(s)),
+                                ));
                             } else {
                                 return Err(("Unexpected identifier after 'return'".to_string(), current_line));
                             }
@@ -1836,7 +1878,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                 temp_ast.push(AST::ForLoop {
                                     start,
                                     end,
-                                    index_name: lexer.slice().to_string(),
+                                    index_name: s,
                                     body,
                                     line,
                                 });
@@ -1849,19 +1891,19 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                     line,
                                 });
 
-                                temp_ast.push(AST::Identifer(lexer.slice().to_string()));
+                                temp_ast.push(AST::Identifer(s));
                             }
                         }
 
-                        AST::Range { left, right, line } => {
+                        AST::Range(left, right) => {
                             if let AST::Null = *right {
                                 let last = temp_ast.pop().unwrap_or(AST::Null);
 
                                 match last {
-                                    AST::ForLoop { start, end: _, index_name, body, line: for_line } => {
+                                    AST::ForLoop { start: _, end: _, index_name, body, line: for_line } => {
                                         temp_ast.push(AST::ForLoop {
                                             start: left,
-                                            end: Box::new(AST::Identifer(lexer.slice().to_string())),
+                                            end: Box::new(AST::Identifer(s)),
                                             index_name,
                                             body,
                                             line: for_line,
@@ -1879,7 +1921,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
 
                         _ => {
                             temp_ast.push(last);
-                            temp_ast.push(AST::Identifer(lexer.slice().to_string()));
+                            temp_ast.push(AST::Identifer(s));
                         }
                     }
                 }
@@ -1986,7 +2028,11 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                         AST::PropertyAccess { object, property, line } => {
                             temp_ast.push(AST::PropertyCall {
                                 object,
-                                property,
+                                property: if let AST::Identifer(name) = *property {
+                                    Some(name)
+                                } else {
+                                    None
+                                },
                                 args: Vec::new(),
                                 line,
                             });
@@ -2008,7 +2054,11 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                     name: name,
                                     value: Box::new(AST::PropertyCall {
                                         object,
-                                        property,
+                                        property: if let AST::Identifer(name) = *property {
+                                            Some(name)
+                                        } else {
+                                            None
+                                        },
                                         args: Vec::new(),
                                         line,
                                     }),
@@ -2071,14 +2121,14 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                     }
                 }
     
-                Ok(Token::String) => {
+                Ok(Token::String(s)) => {
                     let value = temp_ast.pop().unwrap_or(AST::Null);
     
                     match value {
                         AST::Import { file, as_, line } => {
                             if file.is_none() {
                                 temp_ast.push(AST::Import {
-                                    file: Some(lexer.slice().to_string()),
+                                    file: Some(s),
                                     as_,
                                     line,
                                 });
@@ -2091,20 +2141,18 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                             let arg = args.pop().unwrap_or(AST::Null);
 
                             match arg {
-                                AST::Addition { left, right: _, line } => {
-                                    args.push(AST::Addition {
+                                AST::Addition(left, _) => {
+                                    args.push(AST::Addition(
                                         left,
-                                        right: Box::new(AST::String(lexer.slice().to_string())),
-                                        line,
-                                    });
+                                        Box::new(AST::String(s)),
+                                    ));
                                 }
 
-                                AST::Subtraction { left, right: _, line } => {
-                                    args.push(AST::Subtraction {
+                                AST::Subtraction(left, _) => {
+                                    args.push(AST::Subtraction(
                                         left,
-                                        right: Box::new(AST::String(lexer.slice().to_string())),
-                                        line,
-                                    });
+                                        Box::new(AST::String(s)),
+                                    ));
                                 }
 
                                 AST::Call { name: call_name, args: arg_args, line } => {
@@ -2112,14 +2160,14 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                         name: call_name,
                                         args: arg_args,
                                         line,
-                                    }, AST::String(lexer.slice().to_string()))?;
+                                    }, AST::String(s))?;
 
                                     args.push(new_call);
                                 }
 
                                 AST::PropertyCall { object, property, args: arg_args, line } => {
                                     let mut new_args = arg_args.clone();
-                                    new_args.push(AST::String(lexer.slice().to_string()));
+                                    new_args.push(AST::String(s));
 
                                     args.push(AST::PropertyCall {
                                         object,
@@ -2130,12 +2178,12 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                 }
 
                                 AST::Null => {
-                                    args.push(AST::String(lexer.slice().to_string()));
+                                    args.push(AST::String(s));
                                 }
 
                                 _ => {
                                     args.push(arg);
-                                    args.push(AST::String(lexer.slice().to_string()));
+                                    args.push(AST::String(s));
                                 }
                             }
 
@@ -2147,7 +2195,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                         }
 
                         AST::PropertyCall { object, property, mut args, line } => {
-                            args.push(AST::String(lexer.slice().to_string()));
+                            args.push(AST::String(s));
 
                             temp_ast.push(AST::PropertyCall {
                                 object,
@@ -2161,14 +2209,13 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                             let val = *value;
 
                             match val {
-                                AST::Addition { left, right: _, line } => {
+                                AST::Addition(left, _) => {
                                     temp_ast.push(AST::LetDeclaration {
                                         name,
-                                        value: Box::new(AST::Addition {
+                                        value: Box::new(AST::Addition(
                                             left,
-                                            right: Box::new(AST::String(lexer.slice().to_string())),
-                                            line,
-                                        }),
+                                            Box::new(AST::String(s)),
+                                        )),
                                         line,
                                     });
                                 }
@@ -2178,7 +2225,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                         name: call_name,
                                         args,
                                         line,
-                                    }, AST::String(lexer.slice().to_string()))?;
+                                    }, AST::String(s))?;
 
                                     temp_ast.push(AST::LetDeclaration {
                                         name,
@@ -2189,7 +2236,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
 
                                 AST::PropertyCall { object, property, args, line } => {
                                     let mut new_args = args.clone();
-                                    new_args.push(AST::String(lexer.slice().to_string()));
+                                    new_args.push(AST::String(s));
 
                                     temp_ast.push(AST::LetDeclaration {
                                         name,
@@ -2207,7 +2254,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                 _ => {
                                     temp_ast.push(AST::LetDeclaration {
                                         name,
-                                        value: Box::new(AST::String(lexer.slice().to_string())),
+                                        value: Box::new(AST::String(s)),
                                         line,
                                     });
                                 }
@@ -2215,31 +2262,31 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                         }
 
                         AST::IfStatement { condition, body, line } => {
-                            if let AST::IsEqual { left, right, line } = condition.as_ref() {
+                            if let AST::IsEqual(left, right) = condition.as_ref() {
                                 if let AST::Null = **right {
                                     temp_ast.push(AST::IfStatement {
-                                        condition: Box::new(AST::IsEqual {
-                                            left: left.clone(),
-                                            right: Box::new(AST::String(lexer.slice().to_string())),
-                                            line: *line,
-                                        }),
+                                        condition: Box::new(AST::IsEqual(
+                                            left.clone(),
+                                            Box::new(AST::String(s)),
+                                        )),
+
                                         body,
-                                        line: *line,
+                                        line,
                                     });
                                 } else {
                                     return Err(("Expected a value before '=='".to_string(), current_line));
                                 }
                             } else {
-                                if let AST::IsUnequal { left, right, line } = condition.as_ref() {
+                                if let AST::IsUnequal(left, right) = condition.as_ref() {
                                     if let AST::Null = **right {
                                         temp_ast.push(AST::IfStatement {
-                                            condition: Box::new(AST::IsUnequal {
-                                                left: left.clone(),
-                                                right: Box::new(AST::String(lexer.slice().to_string())),
-                                                line: *line,
-                                            }),
+                                            condition: Box::new(AST::IsUnequal(
+                                                left.clone(),
+                                                Box::new(AST::String(s)),
+                                            )),
+
                                             body,
-                                            line: *line,
+                                            line,
                                         });
                                     } else {
                                         return Err(("Expected a value before '!='".to_string(), current_line));
@@ -2251,17 +2298,14 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                         line,
                                     });
         
-                                    temp_ast.push(AST::String(lexer.slice().to_string()));
+                                    temp_ast.push(AST::String(s));
                                 }
                             }
                         }
 
-                        AST::Return { value, line } => {
+                        AST::Return(value) => {
                             if let AST::Null = *value {
-                                temp_ast.push(AST::Return {
-                                    value: Box::new(AST::String(lexer.slice().to_string())),
-                                    line,
-                                });
+                                temp_ast.push(AST::Return(Box::new(AST::String(s))));
                             } else {
                                 return Err(("Unexpected string after 'return'".to_string(), current_line));
                             }
@@ -2278,27 +2322,24 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
 
                     match value {
                         AST::Integer(n) => {
-                            temp_ast.push(AST::Addition {
-                                left: Box::new(AST::Integer(n)),
-                                right: Box::new(AST::Null),
-                                line: current_line,
-                            });
+                            temp_ast.push(AST::Addition(
+                                Box::new(AST::Integer(n)),
+                                Box::new(AST::Null),
+                            ));
                         }
 
                         AST::Float(f) => {
-                            temp_ast.push(AST::Addition {
-                                left: Box::new(AST::Float(f)),
-                                right: Box::new(AST::Null),
-                                line: current_line,
-                            });
+                            temp_ast.push(AST::Addition(
+                                Box::new(AST::Float(f)),
+                                Box::new(AST::Null),
+                            ));
                         }
 
                         AST::String(s) => {
-                            temp_ast.push(AST::Addition {
-                                left: Box::new(AST::String(s)),
-                                right: Box::new(AST::Null),
-                                line: current_line,
-                            });
+                            temp_ast.push(AST::Addition(
+                                Box::new(AST::String(s)),
+                                Box::new(AST::Null),
+                            ));
                         }
 
                         AST::LetDeclaration { name, value, line } => {
@@ -2330,11 +2371,10 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                             } else {
                                 temp_ast.push(AST::LetDeclaration {
                                     name,
-                                    value: Box::new(AST::Addition {
-                                        left: value,
-                                        right: Box::new(AST::Null),
-                                        line,
-                                    }),
+                                    value: Box::new(AST::Addition(
+                                        value,
+                                        Box::new(AST::Null),
+                                    )),
                                     line,
                                 });
                             }
@@ -2363,52 +2403,46 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
 
                         AST::IfStatement { mut condition, body, line } => {
                             match *condition {
-                                AST::IsEqual { left, right, line } => {
-                                    condition = Box::new(AST::IsEqual {
+                                AST::IsEqual(left, right)=> {
+                                    condition = Box::new(AST::IsEqual(
                                         left,
-                                        right: Box::new(AST::Addition { left: right, right: Box::new(AST::Null), line }),
-                                        line,
-                                    });
+                                        Box::new(AST::Addition( right, Box::new(AST::Null))),
+                                    ));
                                 }
 
-                                AST::IsUnequal { left, right, line } => {
-                                    condition = Box::new(AST::IsUnequal {
+                                AST::IsUnequal(left, right) => {
+                                    condition = Box::new(AST::IsUnequal(
                                         left,
-                                        right: Box::new(AST::Addition { left: right, right: Box::new(AST::Null), line }),
-                                        line,
-                                    });
+                                        Box::new(AST::Addition( right, Box::new(AST::Null))),
+                                    ));
                                 }
 
-                                AST::LessThan { left, right, line } => {
-                                    condition = Box::new(AST::LessThan {
+                                AST::LessThan(left, right) => {
+                                    condition = Box::new(AST::LessThan(
                                         left,
-                                        right: Box::new(AST::Addition { left: right, right: Box::new(AST::Null), line }),
-                                        line,
-                                    });
+                                        Box::new(AST::Addition( right, Box::new(AST::Null))),
+                                    ));
                                 }
 
-                                AST::GreaterThan { left, right, line } => {
-                                    condition = Box::new(AST::GreaterThan {
+                                AST::GreaterThan(left, right) => {
+                                    condition = Box::new(AST::GreaterThan(
                                         left,
-                                        right: Box::new(AST::Addition { left: right, right: Box::new(AST::Null), line }),
-                                        line,
-                                    });
+                                        Box::new(AST::Addition( right, Box::new(AST::Null))),
+                                    ));
                                 }
 
-                                AST::LessThanOrEqual { left, right, line } => {
-                                    condition = Box::new(AST::LessThanOrEqual {
+                                AST::LessThanOrEqual(left, right) => {
+                                    condition = Box::new(AST::LessThanOrEqual(
                                         left,
-                                        right: Box::new(AST::Addition { left: right, right: Box::new(AST::Null), line }),
-                                        line,
-                                    });
+                                        Box::new(AST::Addition( right, Box::new(AST::Null))),
+                                    ));
                                 }
 
-                                AST::GreaterThanOrEqual { left, right, line } => {
-                                    condition = Box::new(AST::GreaterThanOrEqual {
+                                AST::GreaterThanOrEqual(left, right) => {
+                                    condition = Box::new(AST::GreaterThanOrEqual(
                                         left,
-                                        right: Box::new(AST::Addition { left: right, right: Box::new(AST::Null), line }),
-                                        line,
-                                    });
+                                        Box::new(AST::Addition( right, Box::new(AST::Null))),
+                                    ));
                                 }
 
                                 _ => {
@@ -2423,34 +2457,30 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                             });
                         }
 
-                        AST::Addition { left, right: _, line } => {
-                            temp_ast.push(AST::Addition {
+                        AST::Addition(left, _) => {
+                            temp_ast.push(AST::Addition(
                                 left,
-                                right: Box::new(AST::Null),
-                                line,
-                            });
+                                Box::new(AST::Null),
+                            ));
                         }
 
-                        AST::Subtraction { left, right: _, line } => {
-                            temp_ast.push(AST::Subtraction {
+                        AST::Subtraction(left, _) => {
+                            temp_ast.push(AST::Subtraction(
                                 left,
-                                right: Box::new(AST::Null),
-                                line,
-                            });
+                                Box::new(AST::Null),
+                            ));
                         }
 
-                        AST::Return { value, line } => {
+                        AST::Return(value) => {
                             if let AST::Null = *value {
                                 return Err(("Unexpected '+' after 'return'".to_string(), current_line));
                             } else {
-                                temp_ast.push(AST::Return {
-                                    value: Box::new(AST::Addition {
-                                        left: value,
-                                        right: Box::new(AST::Null),
-                                        line,
-                                    }),
-                                    line,
-                                });
+                                temp_ast.push(AST::Return(
+                                    Box::new(AST::Addition(
+                                        value,
+                                        Box::new(AST::Null),
+                                    )),
+                                ));
                             }
                         }
 
@@ -2465,19 +2495,17 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
 
                     match value {
                         AST::Integer(n) => {
-                            temp_ast.push(AST::Subtraction {
-                                left: Box::new(AST::Integer(n)),
-                                right: Box::new(AST::Null),
-                                line: current_line,
-                            });
+                            temp_ast.push(AST::Subtraction(
+                                Box::new(AST::Integer(n)),
+                                Box::new(AST::Null),
+                            ));
                         }
 
                         AST::Float(f) => {
-                            temp_ast.push(AST::Subtraction {
-                                left: Box::new(AST::Float(f)),
-                                right: Box::new(AST::Null),
-                                line: current_line,
-                            });
+                            temp_ast.push(AST::Subtraction(
+                                Box::new(AST::Float(f)),
+                                Box::new(AST::Null),
+                            ));
                         }
 
                         AST::LetDeclaration { name, value, line } => {
@@ -2514,11 +2542,10 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                 _ => {
                                     temp_ast.push(AST::LetDeclaration {
                                         name,
-                                        value: Box::new(AST::Subtraction {
-                                            left: value,
-                                            right: Box::new(AST::Null),
-                                            line,
-                                        }),
+                                        value: Box::new(AST::Subtraction(
+                                            value,
+                                            Box::new(AST::Null),
+                                        )),
                                         line,
                                     });
                                 }
@@ -2550,52 +2577,46 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                             let mut push_sub = false;
 
                             match *condition {
-                                AST::IsEqual { left, right, line } => {
-                                    condition = Box::new(AST::IsEqual {
+                                AST::IsEqual(left, right) => {
+                                    condition = Box::new(AST::IsEqual(
                                         left,
-                                        right: Box::new(AST::Subtraction { left: right, right: Box::new(AST::Null), line }),
-                                        line,
-                                    });
+                                        Box::new(AST::Subtraction(right, Box::new(AST::Null))),
+                                    ));
                                 }
 
-                                AST::IsUnequal { left, right, line } => {
-                                    condition = Box::new(AST::IsUnequal {
+                                AST::IsUnequal(left, right) => {
+                                    condition = Box::new(AST::IsUnequal(
                                         left,
-                                        right: Box::new(AST::Subtraction { left: right, right: Box::new(AST::Null), line }),
-                                        line,
-                                    });
+                                        Box::new(AST::Subtraction(right, Box::new(AST::Null))),
+                                    ));
                                 }
 
-                                AST::LessThan { left, right, line } => {
-                                    condition = Box::new(AST::LessThan {
+                                AST::LessThan(left, right) => {
+                                    condition = Box::new(AST::LessThan(
                                         left,
-                                        right: Box::new(AST::Subtraction { left: right, right: Box::new(AST::Null), line }),
-                                        line,
-                                    });
+                                        Box::new(AST::Subtraction(right, Box::new(AST::Null))),
+                                    ));
                                 }
 
-                                AST::GreaterThan { left, right, line } => {
-                                    condition = Box::new(AST::GreaterThan {
+                                AST::GreaterThan(left, right) => {
+                                    condition = Box::new(AST::GreaterThan(
                                         left,
-                                        right: Box::new(AST::Subtraction { left: right, right: Box::new(AST::Null), line }),
-                                        line,
-                                    });
+                                        Box::new(AST::Subtraction(right, Box::new(AST::Null))),
+                                    ));
                                 }
 
-                                AST::LessThanOrEqual { left, right, line } => {
-                                    condition = Box::new(AST::LessThanOrEqual {
+                                AST::LessThanOrEqual(left, right) => {
+                                    condition = Box::new(AST::LessThanOrEqual(
                                         left,
-                                        right: Box::new(AST::Subtraction { left: right, right: Box::new(AST::Null), line }),
-                                        line,
-                                    });
+                                        Box::new(AST::Subtraction(right, Box::new(AST::Null))),
+                                    ));
                                 }
 
-                                AST::GreaterThanOrEqual { left, right, line } => {
-                                    condition = Box::new(AST::GreaterThanOrEqual {
+                                AST::GreaterThanOrEqual(left, right) => {
+                                    condition = Box::new(AST::GreaterThanOrEqual(
                                         left,
-                                        right: Box::new(AST::Subtraction { left: right, right: Box::new(AST::Null), line }),
-                                        line,
-                                    });
+                                        Box::new(AST::Subtraction(right, Box::new(AST::Null))),
+                                    ));
                                 }
 
                                 _ => {
@@ -2610,47 +2631,41 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                             });
 
                             if push_sub {
-                                temp_ast.push(AST::Subtraction {
-                                    left: Box::new(AST::Null),
-                                    right: Box::new(AST::Null),
-                                    line,
-                                });
+                                temp_ast.push(AST::Subtraction(
+                                    Box::new(AST::Null),
+                                    Box::new(AST::Null),
+                                ));
                             }
                         }
 
                         AST::Identifer(name) => {
-                            temp_ast.push(AST::Subtraction {
-                                left: Box::new(AST::Identifer(name)),
-                                right: Box::new(AST::Null),
-                                line: current_line,
-                            });
+                            temp_ast.push(AST::Subtraction(
+                                Box::new(AST::Identifer(name)),
+                                Box::new(AST::Null),
+                            ));
                         }
 
-                        AST::Subtraction { left, right: _, line } => {
-                            temp_ast.push(AST::Subtraction {
+                        AST::Subtraction(left, _) => {
+                            temp_ast.push(AST::Subtraction(
                                 left,
-                                right: Box::new(AST::Null),
-                                line,
-                            });
+                                Box::new(AST::Null),
+                            ));
                         }
 
-                        AST::Addition { left, right: _, line } => {
-                            temp_ast.push(AST::Addition {
+                        AST::Addition(left, _) => {
+                            temp_ast.push(AST::Addition(
                                 left,
-                                right: Box::new(AST::Null),
-                                line,
-                            });
+                                Box::new(AST::Null),
+                            ));
                         }
 
-                        AST::Return { value, line } => {
-                            temp_ast.push(AST::Return {
-                                value: Box::new(AST::Subtraction {
-                                    left: value,
-                                    right: Box::new(AST::Null),
-                                    line,
-                                }),
-                                line,
-                            });
+                        AST::Return(value) => {
+                            temp_ast.push(AST::Return(
+                                Box::new(AST::Subtraction(
+                                    value,
+                                    Box::new(AST::Null),
+                                )),
+                            ));
                         }
 
                         _ => {
@@ -2685,80 +2700,94 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                         }
 
                         AST::LetDeclaration { name, value, line } => {
-                            if let AST::Addition { left, right: _, line } = *value {
-                                temp_ast.push(AST::LetDeclaration {
-                                    name,
-                                    value: Box::new(AST::Addition {
-                                        left,
-                                        right: Box::new(AST::Integer(n)),
-                                        line,
-                                    }),
-                                    line,
-                                });
-                            } else if let AST::Subtraction { left, right: _, line } = *value {
-                                temp_ast.push(
-                                    AST::LetDeclaration {
+                            match *value {
+                                AST::Addition(left, _) => {
+                                    temp_ast.push(AST::LetDeclaration {
                                         name,
-                                        value: Box::new(AST::Subtraction {
+                                        value: Box::new(AST::Addition(
                                             left,
-                                            right: Box::new(AST::Integer(n)),
-                                            line,
-                                        }),
+                                            Box::new(AST::Integer(n)),
+                                        )),
                                         line,
-                                    }
-                                );
-                            } else if let AST::Call { name: call_name, args, line } = *value {
-                                let new_call = handle_nested_arguments(AST::Call {
-                                    name: call_name,
-                                    args,
-                                    line,
-                                }, AST::Integer(n))?;
+                                    });
+                                }
 
-                                temp_ast.push(AST::LetDeclaration {
-                                    name,
-                                    value: Box::new(new_call),
-                                    line,
-                                });
-                            } else if let AST::PropertyCall { object, property, args, line } = *value {
-                                let new_call = handle_nested_arguments(AST::PropertyCall {
-                                    object,
-                                    property,
-                                    args,
-                                    line,
-                                }, AST::Integer(n))?;
+                                AST::Subtraction(left, _) => {
+                                    temp_ast.push(AST::LetDeclaration {
+                                        name,
+                                        value: Box::new(AST::Subtraction(
+                                            left,
+                                            Box::new(AST::Integer(n)),
+                                        )),
+                                        line,
+                                    });
+                                }
 
-                                temp_ast.push(AST::LetDeclaration {
-                                    name,
-                                    value: Box::new(new_call),
-                                    line,
-                                });
-                            } else {
-                                temp_ast.push(AST::LetDeclaration {
-                                    name,
-                                    value: Box::new(AST::Integer(n)),
-                                    line,
-                                });
+                                AST::Call { name: call_name, args, line } => {
+                                    let new_call = handle_nested_arguments(AST::Call {
+                                        name: call_name,
+                                        args,
+                                        line,
+                                    }, AST::Integer(n))?;
+
+                                    temp_ast.push(AST::LetDeclaration {
+                                        name,
+                                        value: Box::new(new_call),
+                                        line,
+                                    });
+                                }
+
+                                AST::PropertyCall { object, property, args, line } => {
+                                    let new_call = handle_nested_arguments(AST::PropertyCall {
+                                        object,
+                                        property,
+                                        args,
+                                        line,
+                                    }, AST::Integer(n))?;
+
+                                    temp_ast.push(AST::LetDeclaration {
+                                        name,
+                                        value: Box::new(new_call),
+                                        line,
+                                    });
+                                }
+
+                                AST::Array(mut elements) => {
+                                    elements.push(AST::Integer(n));
+
+                                    temp_ast.push(AST::LetDeclaration {
+                                        name,
+                                        value: Box::new(AST::Array(elements)),
+                                        line,
+                                    });
+                                }
+
+                                _ => {
+                                    temp_ast.push(AST::LetDeclaration {
+                                        name,
+                                        value: Box::new(AST::Integer(n)),
+                                        line,
+                                    });
+                                }
                             }
                         }
 
-                        AST::Addition { left, right, line } => {
+                        AST::Addition(left, right) => {
                             if let AST::Null = *right {
-                                temp_ast.push(AST::Addition {
+                                temp_ast.push(AST::Addition(
                                     left,
-                                    right: Box::new(AST::Integer(n)),
-                                    line,
-                                });
+                                    Box::new(AST::Integer(n)),
+                                ));
                             } else {
                                 return Err(("Expected a value before '+'".to_string(), current_line));
                             }
                         }
 
-                        AST::Subtraction { left, right: _, line } => {
-                            temp_ast.push(AST::Subtraction {
+                        AST::Subtraction(left, _) => {
+                            temp_ast.push(AST::Subtraction(
                                 left,
-                                right: Box::new(AST::Integer(n)),
-                                line,
-                            });
+                                Box::new(AST::Integer(n)),
+                            ));
                         }
 
                         AST::IfStatement { mut condition, body, line } => { 
@@ -2766,32 +2795,32 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                             let left;
 
                             match *condition.clone() {
-                                AST::IsEqual { left: c_l, right: c_r, line: _ } => {
+                                AST::IsEqual(c_l, c_r) => {
                                     left = c_l;
                                     right = c_r;
                                 }
 
-                                AST::IsUnequal { left: c_l, right: c_r, line: _ } => {
+                                AST::IsUnequal(c_l, c_r) => {
                                     left = c_l;
                                     right = c_r;
                                 }
 
-                                AST::LessThan { left: c_l, right: c_r, line: _ } => {
+                                AST::LessThan(c_l, c_r) => {
                                     left = c_l;
                                     right = c_r;
                                 }
 
-                                AST::GreaterThan { left: c_l, right: c_r, line: _ } => {
+                                AST::GreaterThan(c_l, c_r) => {
                                     left = c_l;
                                     right = c_r;
                                 }
 
-                                AST::LessThanOrEqual { left: c_l, right: c_r, line: _ } => {
+                                AST::LessThanOrEqual(c_l, c_r) => {
                                     left = c_l;
                                     right = c_r;
                                 }
 
-                                AST::GreaterThanOrEqual { left: c_l, right: c_r, line: _ } => {
+                                AST::GreaterThanOrEqual(c_l, c_r) => {
                                     left = c_l;
                                     right = c_r;
                                 }
@@ -2814,20 +2843,18 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                     right = Box::new(AST::Integer(n));
                                 }
 
-                                AST::Addition { left: r_left, right: _, line } => {
-                                    right = Box::new(AST::Addition {
-                                        left: r_left,
-                                        right: Box::new(AST::Integer(n)),
-                                        line,
-                                    });
+                                AST::Addition(r_left, _) => {
+                                    right = Box::new(AST::Addition(
+                                        r_left,
+                                        Box::new(AST::Integer(n)),
+                                    ));
                                 }
 
-                                AST::Subtraction { left: r_left, right: _, line } => {
-                                    right = Box::new(AST::Subtraction {
-                                        left: r_left,
-                                        right: Box::new(AST::Integer(n)),
-                                        line,
-                                    });
+                                AST::Subtraction(r_left, _) => {
+                                    right = Box::new(AST::Subtraction(
+                                        r_left,
+                                        Box::new(AST::Integer(n)),
+                                    ));
                                 }
 
                                 _ => {
@@ -2836,52 +2863,46 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                             }
 
                             match *condition {
-                                AST::IsEqual { left: _, right: _, line }  => {
-                                    condition = Box::new(AST::IsEqual {
+                                AST::IsEqual(_, _)  => {
+                                    condition = Box::new(AST::IsEqual(
                                         left,
                                         right,
-                                        line,
-                                    });
+                                    ));
                                 }
 
-                                AST::IsUnequal { left: _, right: _, line }  => {
-                                    condition = Box::new(AST::IsUnequal {
+                                AST::IsUnequal(_, _)  => {
+                                    condition = Box::new(AST::IsUnequal(
                                         left,
                                         right,
-                                        line,
-                                    });
+                                    ));
                                 }
 
-                                AST::LessThan { left: _, right: _, line }  => {
-                                    condition = Box::new(AST::LessThan {
+                                AST::LessThan(_, _)  => {
+                                    condition = Box::new(AST::LessThan(
                                         left,
                                         right,
-                                        line,
-                                    });
+                                    ));
                                 }
 
-                                AST::GreaterThan { left: _, right: _, line }  => {
-                                    condition = Box::new(AST::GreaterThan {
+                                AST::GreaterThan(_, _)  => {
+                                    condition = Box::new(AST::GreaterThan(
                                         left,
                                         right,
-                                        line,
-                                    });
+                                    ));
                                 }
 
-                                AST::LessThanOrEqual { left: _, right: _, line }  => {
-                                    condition = Box::new(AST::LessThanOrEqual {
+                                AST::LessThanOrEqual(_, _)  => {
+                                    condition = Box::new(AST::LessThanOrEqual(
                                         left,
                                         right,
-                                        line,
-                                    });
+                                    ));
                                 }
 
-                                AST::GreaterThanOrEqual { left: _, right: _, line }  => {
-                                    condition = Box::new(AST::GreaterThanOrEqual {
+                                AST::GreaterThanOrEqual(_, _)  => {
+                                    condition = Box::new(AST::GreaterThanOrEqual(
                                         left,
                                         right,
-                                        line,
-                                    });
+                                    ));
                                 }
 
                                 _ => {
@@ -2896,30 +2917,23 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                             });
                         }
 
-                        AST::Return { value, line } => {
+                        AST::Return(value) => {
                             if let AST::Null = *value {
-                                temp_ast.push(AST::Return {
-                                    value: Box::new(AST::Integer(n)),
-                                    line,
-                                });
-                            } else if let AST::Addition { left, right: _, line } = *value {
-                                temp_ast.push(AST::Return {
-                                    value: Box::new(AST::Addition {
+                                temp_ast.push(AST::Return(Box::new(AST::Integer(n))));
+                            } else if let AST::Addition(left, _) = *value {
+                                temp_ast.push(AST::Return(
+                                    Box::new(AST::Addition(
                                         left,
-                                        right: Box::new(AST::Integer(n)),
-                                        line,
-                                    }),
-                                    line,
-                                });
-                            } else if let AST::Subtraction { left, right: _, line } = *value {
-                                temp_ast.push(AST::Return {
-                                    value: Box::new(AST::Subtraction {
+                                        Box::new(AST::Integer(n)),
+                                    )),
+                                ));
+                            } else if let AST::Subtraction(left, _) = *value {
+                                temp_ast.push(AST::Return(
+                                    Box::new(AST::Subtraction(
                                         left,
-                                        right: Box::new(AST::Integer(n)),
-                                        line,
-                                    }),
-                                    line,
-                                });
+                                        Box::new(AST::Integer(n)),
+                                    )),
+                                ));
                             } else {
                                 return Err(("Unexpected integer after 'return'".to_string(), current_line));
                             }
@@ -2931,7 +2945,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                         }
 
                         // this closes the range, so we can add it to the loop
-                        AST::Range { left, right: _, line } => {
+                        AST::Range(left, _) => {
                             let last = temp_ast.pop().unwrap_or(AST::Null);
 
                             match last {
@@ -2957,7 +2971,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                     }
                 }
     
-                Ok(Token::Boolean) => {
+                Ok(Token::Boolean(b)) => {
                     let value = temp_ast.pop().unwrap_or(AST::Null);
 
                     match value {
@@ -2967,7 +2981,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                             match last_arg {
                                 AST::Call { name: call_name, args: arg_args, line } => {
                                     let mut new_arg_args = arg_args.clone();
-                                    new_arg_args.push(AST::Boolean(lexer.slice() == "true"));
+                                    new_arg_args.push(AST::Boolean(b));
 
                                     args.push(AST::Call {
                                         name: call_name,
@@ -2983,7 +2997,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                 }
 
                                 _ => {
-                                    args.push(AST::Boolean(lexer.slice() == "true"));
+                                    args.push(AST::Boolean(b));
 
                                     temp_ast.push(AST::Call {
                                         name,
@@ -2997,7 +3011,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                         AST::PropertyCall { object, property, args, line } => {
                             let mut args = args.clone();
 
-                            args.push(AST::Boolean(lexer.slice() == "true"));
+                            args.push(AST::Boolean(b));
 
                             temp_ast.push(AST::PropertyCall {
                                 object,
@@ -3007,40 +3021,54 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                             });
                         }
 
-                        AST::LetDeclaration { name, value: _, line } => {
-                            temp_ast.push(AST::LetDeclaration {
-                                name,
-                                value: Box::new(AST::Boolean(lexer.slice() == "true")),
-                                line,
-                            });
+                        AST::LetDeclaration { name, value, line } => {
+                            match *value {
+                                AST::Array(mut elements) => {
+                                    elements.push(AST::Boolean(b));
+
+                                    temp_ast.push(AST::LetDeclaration {
+                                        name,
+                                        value: Box::new(AST::Array(elements)),
+                                        line,
+                                    });
+                                }
+                                
+                                _ => {
+                                    temp_ast.push(AST::LetDeclaration {
+                                        name,
+                                        value: Box::new(AST::Boolean(b)),
+                                        line,
+                                    });
+                                }
+                            }
                         }
 
                         AST::IfStatement { condition, body, line } => {
-                            if let AST::IsEqual { left, right, line } = condition.as_ref() {
+                            if let AST::IsEqual(left, right) = condition.as_ref() {
                                 if let AST::Null = **right {
                                     temp_ast.push(AST::IfStatement {
-                                        condition: Box::new(AST::IsEqual {
-                                            left: left.clone(),
-                                            right: Box::new(AST::Boolean(lexer.slice() == "true")),
-                                            line: *line,
-                                        }),
+                                        condition: Box::new(AST::IsEqual(
+                                            left.clone(),
+                                            Box::new(AST::Boolean(b)),
+                                        )),
+
                                         body,
-                                        line: *line,
+                                        line,
                                     });
                                 } else {
                                     return Err(("Expected a value before '=='".to_string(), current_line));
                                 }
                             } else {
-                                if let AST::IsUnequal { left, right, line } = condition.as_ref() {
+                                if let AST::IsUnequal(left, right) = condition.as_ref() {
                                     if let AST::Null = **right {
                                         temp_ast.push(AST::IfStatement {
-                                            condition: Box::new(AST::IsUnequal {
-                                                left: left.clone(),
-                                                right: Box::new(AST::Boolean(lexer.slice() == "true")),
-                                                line: *line,
-                                            }),
+                                            condition: Box::new(AST::IsUnequal(
+                                                left.clone(),
+                                                Box::new(AST::Boolean(b)),
+                                            )),
+
                                             body,
-                                            line: *line,
+                                            line,
                                         });
                                     } else {
                                         return Err(("Expected a value before '!='".to_string(), current_line));
@@ -3052,17 +3080,14 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                         line,
                                     });
         
-                                    temp_ast.push(AST::Boolean(lexer.slice() == "true"));
+                                    temp_ast.push(AST::Boolean(b));
                                 }
                             }
                         }
 
-                        AST::Return { value, line } => {
+                        AST::Return(value) => {
                             if let AST::Null = *value {
-                                temp_ast.push(AST::Return {
-                                    value: Box::new(AST::Boolean(lexer.slice() == "true")),
-                                    line,
-                                });
+                                temp_ast.push(AST::Return(Box::new(AST::Boolean(b))));
                             } else {
                                 return Err(("Unexpected boolean after 'return'".to_string(), current_line));
                             }
@@ -3079,13 +3104,10 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                         return Err(("Unexpected return statement".to_string(), current_line));
                     }
 
-                    temp_ast.push(AST::Return {
-                        value: Box::new(AST::Null),
-                        line: current_line,
-                    });
+                    temp_ast.push(AST::Return(Box::new(AST::Null)));
                 }
     
-                Ok(Token::Float) => {
+                Ok(Token::Float(f)) => {
                     let value = temp_ast.pop().unwrap_or(AST::Null);
     
                     match value {
@@ -3094,7 +3116,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                 name,
                                 args,
                                 line,
-                            }, AST::Float(lexer.slice().parse().unwrap()))?;
+                            }, AST::Float(f))?;
 
                             temp_ast.push(new_call);
                         }
@@ -3105,156 +3127,81 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                 property,
                                 args,
                                 line,
-                            }, AST::Float(lexer.slice().parse().unwrap()))?;
+                            }, AST::Float(f))?;
 
                             temp_ast.push(new_call);
                         }
 
                         AST::LetDeclaration { name, value, line } => {
-                            if let AST::Addition { left, right: _, line } = *value {
-                                temp_ast.push(AST::LetDeclaration {
-                                    name,
-                                    value: Box::new(AST::Addition {
-                                        left,
-                                        right: Box::new(AST::Float(lexer.slice().parse().unwrap())),
-                                        line,
-                                    }),
-                                    line,
-                                });
-                            } else if let AST::Subtraction { left, right: _, line } = *value {
-                                temp_ast.push(
-                                    AST::LetDeclaration {
+                            match *value {
+                                AST::Addition(left, _) => {
+                                    temp_ast.push(AST::LetDeclaration {
                                         name,
-                                        value: Box::new(AST::Subtraction {
+                                        value: Box::new(AST::Addition(
                                             left,
-                                            right: Box::new(AST::Float(lexer.slice().parse().unwrap())),
-                                            line,
-                                        }),
+                                            Box::new(AST::Float(f)),
+                                        )),
                                         line,
-                                    }
-                                );
-                            } else if let AST::Call { name: call_name, mut args, line } = *value {
-                                let arg = args.pop().unwrap_or(AST::Null);
-
-                                match arg.clone() {
-                                    AST::Addition { left, right, line } => {
-                                        if AST::Null == *right {
-                                            args.push(AST::Addition {
-                                                left,
-                                                right: Box::new(AST::Float(lexer.slice().parse().unwrap())),
-                                                line,
-                                            });
-                                        } else {
-                                            args.push(arg);
-                                            args.push(AST::Float(lexer.slice().parse().unwrap()));
-                                        }
-                                    }
-
-                                    AST::Subtraction { left, right, line } => {
-                                        if AST::Null == *right {
-                                            args.push(AST::Subtraction {
-                                                left,
-                                                right: Box::new(AST::Float(lexer.slice().parse().unwrap())),
-                                                line,
-                                            });
-                                        } else {
-                                            args.push(arg);
-                                            args.push(AST::Float(lexer.slice().parse().unwrap()));
-                                        }
-                                    }
-
-                                    AST::Call { name: call_name, args: arg_args, line } => {
-                                        let mut new_arg_args = arg_args.clone();
-                                        new_arg_args.push(AST::Float(lexer.slice().parse().unwrap()));
-
-                                        args.push(AST::Call {
-                                            name: call_name,
-                                            args: new_arg_args,
-                                            line,
-                                        });
-                                    }
-
-                                    AST::Null => {
-                                        args.push(AST::Float(lexer.slice().parse().unwrap()));
-                                    }
-
-                                    _ => {
-                                        args.push(arg);
-                                        args.push(AST::Float(lexer.slice().parse().unwrap()));
-                                    }
+                                    });
                                 }
 
-                                temp_ast.push(AST::LetDeclaration {
-                                    name,
-                                    value: Box::new(AST::Call {
+                                AST::Subtraction(left, _) => {
+                                    temp_ast.push(AST::LetDeclaration {
+                                        name,
+                                        value: Box::new(AST::Subtraction(
+                                            left,
+                                            Box::new(AST::Float(f)),
+                                        )),
+                                        line,
+                                    });
+                                }
+
+                                AST::Call { name: call_name, args, line } => {
+                                    let new_call = handle_nested_arguments(AST::Call {
                                         name: call_name,
                                         args,
                                         line,
-                                    }),
-                                    line,
-                                });
-                            } else if let AST::PropertyCall { object, property, mut args, line } = *value {
-                                let arg = args.pop().unwrap_or(AST::Null);
+                                    }, AST::Float(f))?;
 
-                                match arg.clone() {
-                                    AST::Addition { left, right, line } => {
-                                        if AST::Null == *right {
-                                            args.push(AST::Addition {
-                                                left,
-                                                right: Box::new(AST::Float(lexer.slice().parse().unwrap())),
-                                                line,
-                                            });
-                                        } else {
-                                            args.push(arg);
-                                            args.push(AST::Float(lexer.slice().parse().unwrap()));
-                                        }
-                                    }
-
-                                    AST::Subtraction { left, right, line } => {
-                                        if AST::Null == *right {
-                                            args.push(AST::Subtraction {
-                                                left,
-                                                right: Box::new(AST::Float(lexer.slice().parse().unwrap())),
-                                                line,
-                                            });
-                                        } else {
-                                            args.push(arg);
-                                            args.push(AST::Float(lexer.slice().parse().unwrap()));
-                                        }
-                                    }
-
-                                    AST::Call { name: call_name, args: arg_args, line } => {
-                                        let mut new_arg_args = arg_args.clone();
-                                        new_arg_args.push(AST::Float(lexer.slice().parse().unwrap()));
-
-                                        args.push(AST::Call {
-                                            name: call_name,
-                                            args: new_arg_args,
-                                            line,
-                                        });
-                                    }
-
-                                    _ => {
-                                        args.push(AST::Float(lexer.slice().parse().unwrap()));
-                                    }
+                                    temp_ast.push(AST::LetDeclaration {
+                                        name,
+                                        value: Box::new(new_call),
+                                        line,
+                                    });
                                 }
 
-                                temp_ast.push(AST::LetDeclaration {
-                                    name: name,
-                                    value: Box::new(AST::PropertyCall {
+                                AST::PropertyCall { object, property, args, line } => {
+                                    let new_call = handle_nested_arguments(AST::PropertyCall {
                                         object,
                                         property,
                                         args,
                                         line,
-                                    }),
-                                    line,
-                                });
-                            } else {
-                                temp_ast.push(AST::LetDeclaration {
-                                    name,
-                                    value: Box::new(AST::Float(lexer.slice().parse().unwrap())),
-                                    line,
-                                });
+                                    }, AST::Float(f))?;
+
+                                    temp_ast.push(AST::LetDeclaration {
+                                        name,
+                                        value: Box::new(new_call),
+                                        line,
+                                    });
+                                }
+
+                                AST::Array(mut elements) => {
+                                    elements.push(AST::Float(f));
+
+                                    temp_ast.push(AST::LetDeclaration {
+                                        name,
+                                        value: Box::new(AST::Array(elements)),
+                                        line,
+                                    });
+                                }
+
+                                _ => {
+                                    temp_ast.push(AST::LetDeclaration {
+                                        name,
+                                        value: Box::new(AST::Float(f)),
+                                        line,
+                                    });
+                                }
                             }
                         }
 
@@ -3265,38 +3212,33 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                 line,
                             });
 
-                            temp_ast.push(AST::Float(lexer.slice().parse().unwrap()));
+                            temp_ast.push(AST::Float(f));
                         }
 
-                        AST::Return { value, line } => {
+                        AST::Return(value) => {
                             if let AST::Null = *value {
-                                temp_ast.push(AST::Return {
-                                    value: Box::new(AST::Float(lexer.slice().parse().unwrap())),
-                                    line,
-                                });
+                                temp_ast.push(AST::Return(Box::new(AST::Float(f))));
                             } else {
                                 return Err(("Unexpected float after 'return'".to_string(), current_line));
                             }
                         }
 
-                        AST::Addition { left, right, line } => {
+                        AST::Addition(left, right) => {
                             if let AST::Null = *right {
-                                temp_ast.push(AST::Addition {
+                                temp_ast.push(AST::Addition(
                                     left,
-                                    right: Box::new(AST::Float(lexer.slice().parse().unwrap())),
-                                    line,
-                                });
+                                    Box::new(AST::Float(f)),
+                                ));
                             } else {
                                 return Err(("Expected a value before '+'".to_string(), current_line));
                             }
                         }
 
-                        AST::Subtraction { left, right: _, line } => {
-                            temp_ast.push(AST::Subtraction {
+                        AST::Subtraction(left, _) => {
+                            temp_ast.push(AST::Subtraction(
                                 left,
-                                right: Box::new(AST::Float(lexer.slice().parse().unwrap())),
-                                line,
-                            });
+                                Box::new(AST::Float(f)),
+                            ));
                         }
 
                         _ => {
@@ -3404,10 +3346,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                             match temp_ast.pop() {
                                 Some(AST::IfStatement { condition: _, body, line }) => {
                                     temp_ast.push(AST::IfStatement {
-                                        condition: Box::new(AST::Exists {
-                                            value: Box::new(AST::Identifer(name)),
-                                            line,
-                                        }),
+                                        condition: Box::new(AST::Exists(Box::new(AST::Identifer(name)))),
                                         body,
                                         line,
                                     });
@@ -3417,11 +3356,11 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                 }
 
                                 Some(v) => {
-                                    return Err(("Expected an if statement before '{'".to_string(), current_line));
+                                    return Err((format!("Unexpected value before '{{': {:?}", v), current_line));
                                 }
 
                                 None => {
-                                    return Err(("Expected an if statement before '{'".to_string(), current_line));
+                                    return Err((format!("Unexpected end before '{{' after identifier: {}", name), current_line));
                                 }
                             }
                         }
@@ -3484,6 +3423,74 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                     }
 
                     bodies_deep -= 1;
+                }
+
+                Ok(Token::LSquareBracket) => {
+                    let last = temp_ast.pop().unwrap_or(AST::Null);
+
+                    match last {
+                        AST::LetDeclaration { name, value: _, line } => {
+                            temp_ast.push(AST::LetDeclaration {
+                                name,
+                                value: Box::new(AST::Array(vec![])),
+                                line,
+                            });
+                        }
+
+                        AST::Call { name, mut args, line } => {
+                            match args.pop() {
+                                Some(AST::Identifer(array_name)) => {
+                                    args.push(AST::PropertyAccess {
+                                        object: Some(array_name),
+                                        property: Box::new(AST::Null),
+                                        line: current_line,
+                                    });
+
+                                    temp_ast.push(AST::Call {
+                                        name,
+                                        args,
+                                        line,
+                                    });
+                                }
+
+                                Some(v) => {
+                                    return Err((format!("Unexpected value before '[' in call args: {:?}", v), current_line));
+                                }
+
+                                None => {
+                                    return Err((format!("Unexpected end of args before '[' in call args"), current_line));
+                                }
+                            }
+                        }
+
+                        _ => {
+                            return Err((format!("Unexpected value before '[': {:?}", last), current_line));
+                        }
+                    }
+                }
+
+                Ok(Token::RSquareBracket) => {
+                    let last = temp_ast.pop().unwrap_or(AST::Null);
+
+                    match last {
+                        AST::LetDeclaration { name, value, line } => {
+                            if let AST::Array(elements) = *value {
+                                temp_ast.push(AST::LetDeclaration {
+                                    name,
+                                    value: Box::new(AST::Array(elements)),
+                                    line,
+                                });
+                            } else {
+                                return Err((format!("Expected an array before ']', got {:?}", *value), current_line));
+                            }
+                        }
+
+                        _ => {
+                            let new_obj = insert_right_square_bracket(last);
+
+                            temp_ast.push(new_obj);
+                        }
+                    }
                 }
     
                 Err(err) => {
@@ -3599,13 +3606,9 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                     return Err((result.err().unwrap(), line));
                 }
             }
-
+ 
             AST::Identifer(name) => {
                 let result = eval(AST::Identifer(name), context);
-                    
-                if result.is_err() {
-                    return Err((result.err().unwrap(), 1));
-                }
 
                 print_res(result.unwrap());
             }

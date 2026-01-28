@@ -1,0 +1,4 @@
+import "uuid" as uuid;
+
+print(uuid.v4());
+print(uuid.v7());
