@@ -1372,11 +1372,10 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                 AST::IfStatement { mut condition, body, line } => {
                                     condition = match token {
                                         Ok(Token::IsEqual) => {
-                                            Box::new(AST::IsEqual {
-                                                left: Box::new(value),
-                                                right: Box::new(AST::Null),
-                                                line,
-                                            })
+                                            Box::new(AST::IsEqual(
+                                                Box::new(value),
+                                                Box::new(AST::Null),
+                                            ))
                                         }
 
                                         Ok(Token::IsUnequal) => {
@@ -1829,12 +1828,11 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                             let mut push_identifier = false;
 
                             match *condition {
-                                AST::IsEqual { left, right: _, line } => {
-                                    condition = Box::new(AST::IsEqual {
+                                AST::IsEqual(left, _) => {
+                                    condition = Box::new(AST::IsEqual(
                                         left,
-                                        right: Box::new(AST::Identifer(lexer.slice().to_string())),
-                                        line,
-                                    });
+                                        Box::new(AST::Identifer(lexer.slice().to_string())),
+                                    ));
                                 }
 
                                 AST::IsUnequal { left, right: _, line } => {
@@ -2295,16 +2293,16 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                         }
 
                         AST::IfStatement { condition, body, line } => {
-                            if let AST::IsEqual { left, right, line } = condition.as_ref() {
+                            if let AST::IsEqual(left, right) = condition.as_ref() {
                                 if let AST::Null = **right {
                                     temp_ast.push(AST::IfStatement {
-                                        condition: Box::new(AST::IsEqual {
-                                            left: left.clone(),
-                                            right: Box::new(AST::String(s)),
-                                            line: *line,
-                                        }),
+                                        condition: Box::new(AST::IsEqual(
+                                            left.clone(),
+                                            Box::new(AST::String(s)),
+                                        )),
+
                                         body,
-                                        line: *line,
+                                        line,
                                     });
                                 } else {
                                     return Err(("Expected a value before '=='".to_string(), current_line));
@@ -2440,12 +2438,11 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
 
                         AST::IfStatement { mut condition, body, line } => {
                             match *condition {
-                                AST::IsEqual { left, right, line } => {
-                                    condition = Box::new(AST::IsEqual {
+                                AST::IsEqual(left, right)=> {
+                                    condition = Box::new(AST::IsEqual(
                                         left,
-                                        right: Box::new(AST::Addition { left: right, right: Box::new(AST::Null), line }),
-                                        line,
-                                    });
+                                        Box::new(AST::Addition { left: right, right: Box::new(AST::Null), line }),
+                                    ));
                                 }
 
                                 AST::IsUnequal { left, right, line } => {
@@ -2626,12 +2623,11 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                             let mut push_sub = false;
 
                             match *condition {
-                                AST::IsEqual { left, right, line } => {
-                                    condition = Box::new(AST::IsEqual {
+                                AST::IsEqual(left, right) => {
+                                    condition = Box::new(AST::IsEqual(
                                         left,
-                                        right: Box::new(AST::Subtraction { left: right, right: Box::new(AST::Null), line }),
-                                        line,
-                                    });
+                                        Box::new(AST::Subtraction { left: right, right: Box::new(AST::Null), line }),
+                                    ));
                                 }
 
                                 AST::IsUnequal { left, right, line } => {
@@ -2859,7 +2855,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                             let left;
 
                             match *condition.clone() {
-                                AST::IsEqual { left: c_l, right: c_r, line: _ } => {
+                                AST::IsEqual(c_l, c_r) => {
                                     left = c_l;
                                     right = c_r;
                                 }
@@ -2929,12 +2925,11 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                             }
 
                             match *condition {
-                                AST::IsEqual { left: _, right: _, line }  => {
-                                    condition = Box::new(AST::IsEqual {
+                                AST::IsEqual(_, _)  => {
+                                    condition = Box::new(AST::IsEqual(
                                         left,
                                         right,
-                                        line,
-                                    });
+                                    ));
                                 }
 
                                 AST::IsUnequal { left: _, right: _, line }  => {
@@ -3118,16 +3113,16 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                         }
 
                         AST::IfStatement { condition, body, line } => {
-                            if let AST::IsEqual { left, right, line } = condition.as_ref() {
+                            if let AST::IsEqual(left, right) = condition.as_ref() {
                                 if let AST::Null = **right {
                                     temp_ast.push(AST::IfStatement {
-                                        condition: Box::new(AST::IsEqual {
-                                            left: left.clone(),
-                                            right: Box::new(AST::Boolean(b)),
-                                            line: *line,
-                                        }),
+                                        condition: Box::new(AST::IsEqual(
+                                            left.clone(),
+                                            Box::new(AST::Boolean(b)),
+                                        )),
+
                                         body,
-                                        line: *line,
+                                        line,
                                     });
                                 } else {
                                     return Err(("Expected a value before '=='".to_string(), current_line));

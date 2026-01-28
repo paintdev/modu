@@ -390,7 +390,7 @@ pub fn eval(expr: AST, context: &mut HashMap<String, AST>) -> Result<AST, String
             context.remove(&index_name);
         }
 
-        AST::IsEqual { left, right, line: _ } => {
+        AST::IsEqual(left, right) => {
             match (eval(*left, context)?, eval(*right, context)?) {
                 (AST::Integer(l), AST::Integer(r)) => {
                     return Ok(AST::Boolean(l == r));

@@ -8,7 +8,7 @@ pub enum AST {
     LetDeclaration {
         name: Option<String>,
         value: Box<AST>,
-        line: usize, // for error msgs
+        line: usize,
     },
 
     IfStatement {
@@ -32,7 +32,7 @@ pub enum AST {
 
     PropertyAccess {
         object: Option<String>,
-        property: Box<AST>, // so we can also support numbers, for indexes
+        property: Box<AST>,
         line: usize,
     },
 
@@ -89,11 +89,8 @@ pub enum AST {
     },
 
     Exists(Box<AST>),
-    IsEqual {
-        left: Box<AST>,
-        right: Box<AST>,
-        line: usize,
-    },
+
+    IsEqual(Box<AST>, Box<AST>),
 
     LessThan {
         left: Box<AST>,
