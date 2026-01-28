@@ -1,14 +1,8 @@
 #![feature(internal_output_capture)]
 
-mod lexer;
 mod ast;
 mod parser;
-mod eval;
-mod utils;
-mod internal;
 mod cli;
-mod packages;
-mod functions;
 
 
 fn main() {

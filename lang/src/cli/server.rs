@@ -1,5 +1,4 @@
 use rouille::router;
-use crate::utils;
 use crate::parser::parse;
 use std::sync::Arc;
 
@@ -49,17 +48,12 @@ pub fn server() {
                     };
                 }
 
-                let context = &mut utils::create_context();
+                let context = &mut std::collections::HashMap::new();
 
                 std::io::set_output_capture(Some(Default::default()));
 
-                parse(&text, context).unwrap_or_else(|e| {
-                    println!("\n⚠️ {}", e.0);
-                    println!("Traceback (most recent call last):");
-                    println!("    File \"<stdin>\", line {}", e.1);
-                    println!("Believe this is a bug? Report it: https://github.com/cyteon/modu/issues/new");
-                });
-
+                parse(&text, context);
+                
                 let captured = String::from_utf8(
                     Arc::try_unwrap(
                         std::io::set_output_capture(None).unwrap()
