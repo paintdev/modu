@@ -70,23 +70,10 @@ pub enum Token {
     #[token("break")]
     Break,
 
-    #[token(".")]
-    Dot,
-
-    #[token("..")]
-    Range,
-
-    #[token("+")]
-    Plus,
-
-    #[token("-")]
-    Minus,
-
-    #[regex("[a-zA-Z_][a-zA-Z0-9_]*")]
-    Identifer,
-
-    #[token("=")]
-    Assign,
+    #[regex("[a-zA-Z_][a-zA-Z0-9_]*", |lex| {
+        lex.slice().to_string()
+    })]
+    Identifer(String),
 
     #[regex("[0-9](?:_?[0-9])*", |lex| {
         lex.slice().replace("_", "").parse::<i64>()
@@ -131,6 +118,21 @@ pub enum Token {
 
     #[token("]")]
     RSquareBracket,
+
+    #[token(".")]
+    Dot,
+
+    #[token("..")]
+    Range,
+
+    #[token("+")]
+    Plus,
+
+    #[token("-")]
+    Minus,
+
+    #[token("=")]
+    Assign,
 
     #[token("==")]
     IsEqual,
@@ -180,7 +182,7 @@ mod tests {
     fn asing_str() {
         let mut lexer = Token::lexer("let x = \"test\"");
         assert_eq!(lexer.next(), Some(Ok(Token::Let)));
-        assert_eq!(lexer.next(), Some(Ok(Token::Identifer)));
+        assert_eq!(lexer.next(), Some(Ok(Token::Identifer("x".to_string()))));
         assert_eq!(lexer.next(), Some(Ok(Token::Assign)));
         assert_eq!(lexer.next(), Some(Ok(Token::String("test".to_string()))));
     }
@@ -189,7 +191,7 @@ mod tests {
     fn asing_number() {
         let mut lexer = Token::lexer("let x = 10");
         assert_eq!(lexer.next(), Some(Ok(Token::Let)));
-        assert_eq!(lexer.next(), Some(Ok(Token::Identifer)));
+        assert_eq!(lexer.next(), Some(Ok(Token::Identifer("x".to_string()))));
         assert_eq!(lexer.next(), Some(Ok(Token::Assign)));
         assert_eq!(lexer.next(), Some(Ok(Token::Integer(10))));
     }
@@ -198,7 +200,7 @@ mod tests {
     fn asing_boolean() {
         let mut lexer = Token::lexer("let x = true");
         assert_eq!(lexer.next(), Some(Ok(Token::Let)));
-        assert_eq!(lexer.next(), Some(Ok(Token::Identifer)));
+        assert_eq!(lexer.next(), Some(Ok(Token::Identifer("x".to_string()))));
         assert_eq!(lexer.next(), Some(Ok(Token::Assign)));
         assert_eq!(lexer.next(), Some(Ok(Token::Boolean(true))));
     }
@@ -207,7 +209,7 @@ mod tests {
     fn expr() {
         let mut lexer = Token::lexer("print(\"Hello, world!\")");
 
-        assert_eq!(lexer.next(), Some(Ok(Token::Identifer)));
+        assert_eq!(lexer.next(), Some(Ok(Token::Identifer("print".to_string()))));
         assert_eq!(lexer.next(), Some(Ok(Token::LParen)));
         assert_eq!(lexer.next(), Some(Ok(Token::String("Hello, world!".to_string()))));
         assert_eq!(lexer.next(), Some(Ok(Token::RParen)));
@@ -218,7 +220,7 @@ mod tests {
         let mut lexer = Token::lexer("let x = 9223372036854775808");
 
         assert_eq!(lexer.next(), Some(Ok(Token::Let)));
-        assert_eq!(lexer.next(), Some(Ok(Token::Identifer)));
+        assert_eq!(lexer.next(), Some(Ok(Token::Identifer("x".to_string()))));
         assert_eq!(lexer.next(), Some(Ok(Token::Assign)));
         assert_eq!(lexer.next(), Some(Err(LexingError::InvalidInteger("Integer overflow".to_string()))));
     }

@@ -1549,14 +1549,14 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                     }
                 }
     
-                Ok(Token::Identifer) => {
+                Ok(Token::Identifer(s)) => {
                     let last = temp_ast.pop().unwrap_or(AST::Null);
                     
                     match last {
                         AST::Import { file, as_: _, line } => {
                             temp_ast.push(AST::Import {
                                 file,
-                                as_: Some(lexer.slice().to_string()),
+                                as_: Some(s.clone()),
                                 line,
                             });
                         }
@@ -1564,7 +1564,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                         AST::LetDeclaration { name, value, line } => {
                             if name.is_none() {
                                 temp_ast.push(AST::LetDeclaration {
-                                    name: Some(lexer.slice().to_string()),
+                                    name: Some(s.clone()),
                                     value,
                                     line,
                                 });
@@ -1575,7 +1575,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                     AST::Null => {
                                         temp_ast.push(AST::LetDeclaration {
                                             name,
-                                            value: Box::new(AST::Identifer(lexer.slice().to_string())),
+                                            value: Box::new(AST::Identifer(s)),
                                             line,
                                         });
                                     }
@@ -1585,7 +1585,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                             name,
                                             value: Box::new(AST::Addition {
                                                 left,
-                                                right: Box::new(AST::Identifer(lexer.slice().to_string())),
+                                                right: Box::new(AST::Identifer(s)),
                                                 line,
                                             }),
                                             line,
@@ -1597,7 +1597,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                             name,
                                             value: Box::new(AST::Subtraction {
                                                 left,
-                                                right: Box::new(AST::Identifer(lexer.slice().to_string())),
+                                                right: Box::new(AST::Identifer(s)),
                                                 line,
                                             }),
                                             line,
@@ -1609,7 +1609,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                             name,
                                             value: Box::new(AST::PropertyAccess {
                                                 object,
-                                                property: Box::new(AST::Identifer(lexer.slice().to_string())),
+                                                property: Box::new(AST::Identifer(s)),
                                                 line,
                                             }),
                                             line,
@@ -1621,7 +1621,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                             name: call_name,
                                             args,
                                             line,
-                                        }, AST::Identifer(lexer.slice().to_string()))?;
+                                        }, AST::Identifer(s))?;
 
                                         temp_ast.push(AST::LetDeclaration {
                                             name,
@@ -1636,7 +1636,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                             property,
                                             args,
                                             line,
-                                        }, AST::Identifer(lexer.slice().to_string()))?;
+                                        }, AST::Identifer(s))?;
 
                                         temp_ast.push(AST::LetDeclaration {
                                             name,
@@ -1646,7 +1646,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                     }
 
                                     AST::Array(mut elements) => {
-                                        elements.push(AST::Identifer(lexer.slice().to_string()));
+                                        elements.push(AST::Identifer(s));
 
                                         temp_ast.push(AST::LetDeclaration {
                                             name,
@@ -1669,7 +1669,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                 AST::PropertyAccess { object, property: _, line } => {
                                     args.push(AST::PropertyAccess {
                                         object,
-                                        property: Box::new(AST::Identifer(lexer.slice().to_string())),
+                                        property: Box::new(AST::Identifer(s)),
                                         line,
                                     });
                                 }
@@ -1677,7 +1677,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                 AST::Addition { left, right: _, line } => {
                                     args.push(AST::Addition {
                                         left,
-                                        right: Box::new(AST::Identifer(lexer.slice().to_string())),
+                                        right: Box::new(AST::Identifer(s)),
                                         line,
                                     });
                                 }
@@ -1685,7 +1685,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                 AST::Subtraction { left, right: _, line } => {
                                     args.push(AST::Subtraction {
                                         left,
-                                        right: Box::new(AST::Identifer(lexer.slice().to_string())),
+                                        right: Box::new(AST::Identifer(s)),
                                         line,
                                     });
                                 }
@@ -1695,7 +1695,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                         name: call_name,
                                         args: arg_args,
                                         line,
-                                    }, AST::Identifer(lexer.slice().to_string()))?;
+                                    }, AST::Identifer(s))?;
 
                                     args.push(new_call);
                                 }
@@ -1706,19 +1706,19 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                         property,
                                         args: property_args,
                                         line,
-                                    }, AST::Identifer(lexer.slice().to_string()))?;
+                                    }, AST::Identifer(s))?;
 
                                     args.push(new_call);
                                 }
 
                                 AST::Null => {
-                                    args.push(AST::Identifer(lexer.slice().to_string()));
+                                    args.push(AST::Identifer(s));
                                 }
 
                                 _ => {
                                     args.push(value);
 
-                                    args.push(AST::Identifer(lexer.slice().to_string()));
+                                    args.push(AST::Identifer(s));
                                 }
                             }
 
@@ -1736,7 +1736,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                 AST::PropertyAccess { object, property: _, line } => {
                                     args.push(AST::PropertyAccess {
                                         object,
-                                        property: Box::new(AST::Identifer(lexer.slice().to_string())),
+                                        property: Box::new(AST::Identifer(s)),
                                         line,
                                     });
                                 }
@@ -1744,7 +1744,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                 AST::Addition { left, right: _, line } => {
                                     args.push(AST::Addition {
                                         left,
-                                        right: Box::new(AST::Identifer(lexer.slice().to_string())),
+                                        right: Box::new(AST::Identifer(s)),
                                         line,
                                     });
                                 }
@@ -1752,7 +1752,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                 AST::Subtraction { left, right: _, line } => {
                                     args.push(AST::Subtraction {
                                         left,
-                                        right: Box::new(AST::Identifer(lexer.slice().to_string())),
+                                        right: Box::new(AST::Identifer(s)),
                                         line,
                                     });
                                 }
@@ -1762,7 +1762,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                         name: call_name,
                                         args: arg_args,
                                         line,
-                                    }, AST::Identifer(lexer.slice().to_string()))?;
+                                    }, AST::Identifer(s))?;
 
                                     args.push(new_call);
                                 }
@@ -1773,18 +1773,18 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                         property,
                                         args: property_args,
                                         line,
-                                    }, AST::Identifer(lexer.slice().to_string()))?;
+                                    }, AST::Identifer(s))?;
 
                                     args.push(new_call);
                                 }
 
                                 AST::Null => {
-                                    args.push(AST::Identifer(lexer.slice().to_string()));
+                                    args.push(AST::Identifer(s));
                                 }
 
                                 _ => {
                                     args.push(arg);
-                                    args.push(AST::Identifer(lexer.slice().to_string()));
+                                    args.push(AST::Identifer(s));
                                 }
                             }
 
@@ -1799,13 +1799,13 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                         AST::Function { name, mut args, body, line } => {
                             if name.is_empty() {
                                 temp_ast.push(AST::Function {
-                                    name: lexer.slice().to_string(),
+                                    name: s,
                                     args,
                                     body,
                                     line,
                                 });
                             } else {
-                                args.push(lexer.slice().to_string());
+                                args.push(s);
 
                                 temp_ast.push(AST::Function {
                                     name,
@@ -1819,7 +1819,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                         AST::PropertyAccess { object, property: _, line } => {
                             temp_ast.push(AST::PropertyAccess {
                                 object,
-                                property: Box::new(AST::Identifer(lexer.slice().to_string())),
+                                property: Box::new(AST::Identifer(s)),
                                 line,
                             });
                         }
@@ -1831,14 +1831,14 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                 AST::IsEqual(left, _) => {
                                     condition = Box::new(AST::IsEqual(
                                         left,
-                                        Box::new(AST::Identifer(lexer.slice().to_string())),
+                                        Box::new(AST::Identifer(s.clone())),
                                     ));
                                 }
 
                                 AST::IsUnequal { left, right: _, line } => {
                                     condition = Box::new(AST::IsUnequal {
                                         left,
-                                        right: Box::new(AST::Identifer(lexer.slice().to_string())),
+                                        right: Box::new(AST::Identifer(s.clone())),
                                         line,
                                     });
                                 }
@@ -1846,7 +1846,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                 AST::LessThan { left, right: _, line } => {
                                     condition = Box::new(AST::LessThan {
                                         left,
-                                        right: Box::new(AST::Identifer(lexer.slice().to_string())),
+                                        right: Box::new(AST::Identifer(s.clone())),
                                         line,
                                     });
                                 }
@@ -1854,7 +1854,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                 AST::GreaterThan { left, right: _, line } => {
                                     condition = Box::new(AST::GreaterThan {
                                         left,
-                                        right: Box::new(AST::Identifer(lexer.slice().to_string())),
+                                        right: Box::new(AST::Identifer(s.clone())),
                                         line,
                                     });
                                 }
@@ -1862,7 +1862,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                 AST::LessThanOrEqual { left, right: _, line } => {
                                     condition = Box::new(AST::LessThanOrEqual {
                                         left,
-                                        right: Box::new(AST::Identifer(lexer.slice().to_string())),
+                                        right: Box::new(AST::Identifer(s.clone())),
                                         line,
                                     });
                                 }
@@ -1870,7 +1870,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                 AST::GreaterThanOrEqual { left, right: _, line } => {
                                     condition = Box::new(AST::GreaterThanOrEqual {
                                         left,
-                                        right: Box::new(AST::Identifer(lexer.slice().to_string())),
+                                        right: Box::new(AST::Identifer(s.clone())),
                                         line,
                                     });
                                 }
@@ -1887,14 +1887,14 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                             });
 
                             if push_identifier {
-                                temp_ast.push(AST::Identifer(lexer.slice().to_string()));
+                                temp_ast.push(AST::Identifer(s));
                             }
                         }
 
                         AST::Return(value) => {
                             if let AST::Null = *value {
                                 temp_ast.push(AST::Return(
-                                    Box::new(AST::Identifer(lexer.slice().to_string())),
+                                    Box::new(AST::Identifer(s)),
                                 ));
                             } else {
                                 return Err(("Unexpected identifier after 'return'".to_string(), current_line));
@@ -1906,7 +1906,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                 temp_ast.push(AST::ForLoop {
                                     start,
                                     end,
-                                    index_name: lexer.slice().to_string(),
+                                    index_name: s,
                                     body,
                                     line,
                                 });
@@ -1919,7 +1919,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                     line,
                                 });
 
-                                temp_ast.push(AST::Identifer(lexer.slice().to_string()));
+                                temp_ast.push(AST::Identifer(s));
                             }
                         }
 
@@ -1931,7 +1931,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
                                     AST::ForLoop { start: _, end: _, index_name, body, line: for_line } => {
                                         temp_ast.push(AST::ForLoop {
                                             start: left,
-                                            end: Box::new(AST::Identifer(lexer.slice().to_string())),
+                                            end: Box::new(AST::Identifer(s)),
                                             index_name,
                                             body,
                                             line: for_line,
@@ -1949,7 +1949,7 @@ pub fn parse(input: &str, context: &mut HashMap<String, AST>) -> Result<(), (Str
 
                         _ => {
                             temp_ast.push(last);
-                            temp_ast.push(AST::Identifer(lexer.slice().to_string()));
+                            temp_ast.push(AST::Identifer(s));
                         }
                     }
                 }
