@@ -8,6 +8,7 @@ mod utils;
 mod internal;
 mod cli;
 mod packages;
+mod functions;
 
 
 fn main() {

@@ -1,3 +1,5 @@
+use argon2::password_hash::rand_core::le;
+
 use crate::ast::AST;
 
 use std::{collections::HashMap, path::PathBuf};
@@ -310,6 +312,22 @@ pub fn eval(expr: AST, context: &mut HashMap<String, AST>) -> Result<AST, String
                                     return Ok(result);
                                 }
 
+                                AST::Array(elements) => {
+                                    let result = crate::functions::array::handle_function(
+                                        elements, 
+                                        property.as_ref().unwrap().clone(),
+                                        args,
+                                    )?;
+
+                                    if let AST::Null = result.1 {
+                                        
+                                    } else {
+                                        context.insert(object.unwrap(), result.1);
+                                    }
+
+                                    return Ok(result.0);
+                                }
+
                                 _ => {
                                     return Err(format!("{} is not an object", name));
                                 }
@@ -613,6 +631,8 @@ pub fn eval(expr: AST, context: &mut HashMap<String, AST>) -> Result<AST, String
         }
 
         AST::PropertyAccess { object, property, line: _ } => {
+            let evaluated_property = eval(*property.clone(), context)?;
+
             match object {
                 Some(name) => {
                     match context.get(&name) {
@@ -651,7 +671,7 @@ pub fn eval(expr: AST, context: &mut HashMap<String, AST>) -> Result<AST, String
                                 }
 
                                 AST::Array(elements) => {
-                                    match *property {
+                                    match evaluated_property {
                                         AST::Integer(index) => {
                                             if index < 0 || (index as usize) >= elements.len() {
                                                 return Err(format!("Index {} out of bounds for array of length {}", index, elements.len()));

@@ -12,3 +12,9 @@ let b = lenght - 1;
 for i = 0..b {
     print("Element ", i, ": ", array[i]);
 }
+
+array.clear();
+print("after array.clear: ", array);
+
+array.push("new element");
+print("after array.push: ", array);
