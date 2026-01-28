@@ -4,7 +4,6 @@ mod time;
 mod os;
 pub mod ffi;
 pub mod json;
-pub mod array;
 mod uuid;
 mod http;
 mod encoding;
@@ -70,11 +69,6 @@ pub fn get_package(name: &str) -> Option<AST> {
 
 		"json" => Some(AST::Object {
 			properties: json::get_object(),
-			line: 0
-		}),
-
-		"array" => Some(AST::Object {
-			properties: array::get_object(),
 			line: 0
 		}),
 
