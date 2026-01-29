@@ -97,9 +97,26 @@ fn parser<'src>() -> impl Parser<
                 span: Span::from(start.start..end.end),
             });
         
+        let fn_stmt = select! { (Token::Function, span) => span }
+            .then(select! { (Token::Identifier(name), _) => name })
+            .then_ignore(select! { (Token::LParen, _) => () })
+            .then(
+                select! { (Token::Identifier(name), _) => name }
+                    .separated_by(select! { (Token::Comma, _) => () })
+                    .allow_trailing()
+                    .collect::<Vec<_>>()
+            )
+            .then_ignore(select! { (Token::RParen, _) => () })
+            .then(block.clone())
+            .map(|(((start, name), args), body): (((Span, String), Vec<String>), SpannedExpr)| SpannedExpr {
+                node: Expr::Function { name, args, body: Box::new(body.clone()) },
+                span: Span::from(start.start..body.span.end),
+            });
+                
         let_stmt
             .or(expr_stmt)
             .or(block)
+            .or(fn_stmt)
     });
 
     stmt.repeated().collect::<Vec<_>>().then_ignore(end())
@@ -170,11 +187,11 @@ pub fn parse(input: &str, filename: &str, context: &mut HashMap<String, Expr>) {
 
                         Report::build(ReportKind::Error, (filename, span.into_range()))
                             .with_code(2)
-                            .with_message(format!("{:?}", err.reason()))
+                            .with_message(format!("I expected {:?}, but found {:?}", expected, found.clone().map(|f| f.0.clone())))
                             .with_label(
                                     Label::new((filename, span.into_range()))
                                         .with_color(Color::Red)
-                                        .with_message(format!("expected {:?}, found {:?}", expected, found)),
+                                        .with_message(format!("expected {:?}", expected)),
                             )
                             .finish()
                             .print((filename, Source::from(input)))

@@ -42,7 +42,13 @@ pub enum Expr {
         name: String,
         args: Vec<String>, // or __args__ for an optional amount
         func: fn(Vec<Spanned<Expr>>) -> Result<InternalFunctionResponse, (String, Span)>,
-    }
+    },
+
+    Function {
+        name: String,
+        args: Vec<String>,
+        body: Box<Spanned<Expr>>,
+    },
 }
 
 impl std::fmt::Display for Expr {

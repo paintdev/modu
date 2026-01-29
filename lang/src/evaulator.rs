@@ -138,6 +138,27 @@ pub fn eval<'src>(expr: &'src SpannedExpr, context: &mut HashMap<String, Expr>) 
                             }
                         }
 
+                        Expr::Function { name, args, body } => {
+                            if args.len() != evaluated_args.as_ref().map_or(0, |a| a.len()) {
+                                return Err(EvalError {
+                                    message: format!("Function {} expects {} arguments, got {}", name, args.len(), evaluated_args.as_ref().map_or(0, |a| a.len())),
+                                    message_short: format!("got {} arguments too many", evaluated_args.as_ref().map_or(0, |a| a.len()) - args.len()),
+                                    span: expr.span,
+                                });
+                            }
+
+                            let mut new_context = context.clone();
+
+                            for (i, arg_name) in args.iter().enumerate() {
+                                new_context.insert(arg_name.clone(), evaluated_args.as_ref().unwrap()[i].node.clone());
+                            }
+
+                            match eval(body, &mut new_context)? {
+                                Flow::Continue(v) => Ok(Flow::Continue(v)),
+                                Flow::Return(v) => Ok(Flow::Continue(v)),
+                            }
+                        }
+
                         _ => Err(EvalError {
                             message: format!("{} is not a function", name),
                             message_short: "not a function".to_string(),
@@ -162,6 +183,16 @@ pub fn eval<'src>(expr: &'src SpannedExpr, context: &mut HashMap<String, Expr>) 
 
         }
 
+        Expr::Function { name, args, body } => {
+            context.insert(name.clone(), Expr::Function {
+                name: name.clone(),
+                args: args.clone(),
+                body: body.clone(),
+            });
+
+            Ok(Flow::Continue(Expr::Null))
+        }
+
         Expr::Block(exprs) => {
             let preexisting_keys = context.keys().cloned().collect::<Vec<String>>();
 
@@ -183,8 +214,8 @@ pub fn eval<'src>(expr: &'src SpannedExpr, context: &mut HashMap<String, Expr>) 
 
         v => {
             Err(EvalError {
-                message: format!("Cannot evaluate expression: {:?}", v),
-                message_short: "cannot evaluate".to_string(),
+                message: format!("No evaluator for {:?}", v),
+                message_short: "couldn't evaluate".to_string(),
                 span: expr.span,
             })
         }

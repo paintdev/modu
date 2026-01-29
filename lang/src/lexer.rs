@@ -61,6 +61,9 @@ pub enum Token {
     #[token("null")]
     Null,
 
+    #[token("fn")]
+    Function,
+
     #[token(",")]
     Comma,
     
