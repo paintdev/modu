@@ -47,6 +47,8 @@ pub fn eval<'src>(expr: &'src SpannedExpr, context: &mut HashMap<String, Expr>) 
                 (Expr::Float(l), Expr::Float(r)) => Ok(Expr::Float(l + r)),
                 (Expr::Int(l), Expr::Float(r)) => Ok(Expr::Float(l as f64 + r)),
                 (Expr::Float(l), Expr::Int(r)) => Ok(Expr::Float(l + r as f64)),
+                (Expr::String(l), Expr::String(r)) => Ok(Expr::String(l + &r)),
+
                 _ => Err(EvalError {
                     message: format!("Cannot add values: {:?} + {:?}", left.node, right.node),
                     message_short: "cannot add".to_string(),
@@ -64,6 +66,7 @@ pub fn eval<'src>(expr: &'src SpannedExpr, context: &mut HashMap<String, Expr>) 
                 (Expr::Float(l), Expr::Float(r)) => Ok(Expr::Float(l - r)),
                 (Expr::Int(l), Expr::Float(r)) => Ok(Expr::Float(l as f64 - r)),
                 (Expr::Float(l), Expr::Int(r)) => Ok(Expr::Float(l - r as f64)),
+                
                 _ => Err(EvalError {
                     message: format!("Cannot subtract values: {:?} - {:?}", left.node, right.node),
                     message_short: "cannot subtract".to_string(),
