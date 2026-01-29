@@ -6,3 +6,5 @@ let e = null;
 
 print(a);
 print("Hello, ", "world!");
+print("you like: ", input("i like: "));
+print(this_dosent_exist);
