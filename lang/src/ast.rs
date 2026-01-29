@@ -7,6 +7,12 @@ pub struct Spanned<T> {
 }
 
 #[derive(Debug, Clone)]
+pub struct InternalFunctionResponse {
+    pub return_value: Spanned<Expr>,
+    pub replace_self: Option<Spanned<Expr>>,
+}
+
+#[derive(Debug, Clone)]
 pub enum Expr {
     Int(i64),
     Float(f64),
@@ -23,6 +29,12 @@ pub enum Expr {
     Let {
         name: String,
         value: Box<Spanned<Expr>>,
+    },
+
+    InternalFunction {
+        name: String,
+        args: Vec<Spanned<Expr>>, // or __args__ for an optional amount
+        func: fn(Vec<Spanned<Expr>>) -> Result<InternalFunctionResponse, (String, Span)>,
     }
 }
 

@@ -48,7 +48,7 @@ pub fn server() {
                     };
                 }
 
-                let context = &mut std::collections::HashMap::new();
+                let context = &mut crate::utils::create_context();
 
                 std::io::set_output_capture(Some(Default::default()));
 

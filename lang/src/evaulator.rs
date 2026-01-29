@@ -24,23 +24,49 @@ pub fn eval<'src>(expr: &'src SpannedExpr, context: &mut HashMap<String, Expr>) 
         Expr::Null => Ok(Expr::Null),
 
         Expr::Identifier(name) => {
-            Err(EvalError {
-                message: format!("identifier kaboom: {}", name),
-                span: expr.span,
-            })
+            match context.get(name) {
+                Some(value) => Ok(value.clone()),
+                None => Err(EvalError {
+                    message: format!("Undefined identifier: {}", name),
+                    span: expr.span,
+                }),
+            }
         }
 
         Expr::Call { name, args } => {
-            Err(EvalError {
-                message: format!("kaboom: {}", name),
-                span: expr.span,
-            })
+            let evaluated_args: Result<Vec<Expr>, EvalError> = args
+                .iter()
+                .map(|arg| eval(arg, context))
+                .collect();
+
+            match context.get(name) {
+                Some(v) => {
+                    match v {
+                        _ => Err(EvalError {
+                            message: format!("{} is not a function", name),
+                            span: expr.span,
+                        })
+                    }
+                }
+
+                None => Err(EvalError {
+                    message: format!("Undefined function: {}", name),
+                    span: expr.span,
+                }),
+            }
         }
 
         Expr::Let { name, value } => {
             context.insert(name.clone(), (*value).node.clone());
 
             Ok(Expr::Null)
+        }
+
+        v => {
+            Err(EvalError {
+                message: format!("Cannot evaluate expression: {:?}", v),
+                span: expr.span,
+            })
         }
     }
 }

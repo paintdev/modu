@@ -5,7 +5,6 @@ pub fn run() {
     
     let file: String;
     let file_path: String;
-    //let context = &mut utils::create_context();
     
     if args.len() < 3 || (args[2].as_str().contains("--") && args.len() == 3) {
         let main_path = std::path::Path::new("main.modu");
@@ -21,7 +20,7 @@ pub fn run() {
         file_path = args[2].clone();
     }
 
-    // todo: creating context with built in functions
+    let context: &mut std::collections::HashMap<String, crate::ast::Expr> = &mut crate::utils::create_context();
 
-    parse(&file, &file_path, &mut std::collections::HashMap::new());
+    parse(&file, &file_path, context);
 }

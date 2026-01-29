@@ -5,7 +5,7 @@ use crate::parser::parse;
 pub fn repl() {
     println!("Modu REPL");
 
-    let context = &mut std::collections::HashMap::new();
+    let context = &mut crate::utils::create_context();
     
     let mut history: Vec<String> = Vec::new();
     let mut open_functions = 0;
