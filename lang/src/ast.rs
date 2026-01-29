@@ -20,6 +20,7 @@ pub enum Expr {
     String(String),
     Identifier(String),
     Bool(bool),
+    Return(Box<Spanned<Expr>>),
     Null,
 
     Neg(Box<Spanned<Expr>>),

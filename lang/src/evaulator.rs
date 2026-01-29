@@ -212,6 +212,11 @@ pub fn eval<'src>(expr: &'src SpannedExpr, context: &mut HashMap<String, Expr>) 
             Ok(Flow::Continue(Expr::Null))
         }
 
+        Expr::Return(value) => {
+            let return_value = eval(value, context)?.unwrap();
+            Ok(Flow::Return(return_value))
+        }
+
         v => {
             Err(EvalError {
                 message: format!("No evaluator for {:?}", v),

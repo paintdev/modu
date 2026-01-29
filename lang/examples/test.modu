@@ -26,3 +26,18 @@ fn add(x, y) {
 }
 
 print(add(5, 10));
+
+fn return_with_null() {
+    return;
+    print("oh no this should not print");
+}
+
+{
+    return;
+    print("this should not print either");
+}
+
+
+return; // should error
+
+print("this should not print");

@@ -58,6 +58,9 @@ pub enum Token {
     #[regex("true|false", |lex| lex.slice() == "true")]
     Bool(bool),
 
+    #[token("return")]
+    Return,
+
     #[token("null")]
     Null,
 

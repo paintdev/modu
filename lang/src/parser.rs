@@ -112,11 +112,28 @@ fn parser<'src>() -> impl Parser<
                 node: Expr::Function { name, args, body: Box::new(body.clone()) },
                 span: Span::from(start.start..body.span.end),
             });
+        
+        let retun_stmt = select! { (Token::Return, span) => span }
+            .then(expr.clone().or_not())
+            .then(select! { (Token::Semicolon, span) => span })
+            .map(|((start, value), end): ((Span, Option<SpannedExpr>), Span)| SpannedExpr {
+                node: Expr::Return(
+                    match value {
+                        Some(v) => Box::new(v),
+                        None => Box::new(SpannedExpr {
+                            node: Expr::Null,
+                            span: start.clone(),
+                        }),
+                    }
+                ),
+                span: Span::from(start.start..end.end),
+            });
                 
         let_stmt
             .or(expr_stmt)
             .or(block)
             .or(fn_stmt)
+            .or(retun_stmt)
     });
 
     stmt.repeated().collect::<Vec<_>>().then_ignore(end())
@@ -151,6 +168,27 @@ pub fn parse(input: &str, filename: &str, context: &mut HashMap<String, Expr>) {
             }
 
             for expr in ast {
+                match &expr.node {
+                    // should never be an return in the top-level
+                    Expr::Return(_) => {
+                        Report::build(ReportKind::Error, (filename, expr.span.into_range()))
+                            .with_code(3)
+                            .with_message("Return statement not allowed in top-level")
+                            .with_label(
+                                Label::new((filename, expr.span.into_range()))
+                                    .with_color(Color::Red)
+                                    .with_message("unexpected return statement"),
+                            )
+                            .finish()
+                            .print((filename, Source::from(input)))
+                            .unwrap();
+
+                        return;
+                    }
+
+                    _ => {}
+                }
+
                 match evaulator::eval(&expr, context) {
                     Ok(_) => {
                         
