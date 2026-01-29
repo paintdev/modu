@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use serde::de::value;
+
 use crate::ast::{Expr, SpannedExpr};
 use crate::lexer::Span;
 
@@ -10,26 +12,40 @@ pub struct EvalError {
     pub span: Span,
 }
 
+#[derive(Debug)]
+pub enum Flow {
+    Continue(Expr),
+    Return(Expr),
+}
+
+impl Flow {
+    fn unwrap(self) -> Expr {
+        match self {
+            Flow::Continue(v) | Flow::Return(v) => v,
+        }
+    }
+}
+
 impl std::fmt::Display for EvalError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.message)
     }
 }
 
-pub fn eval<'src>(expr: &'src SpannedExpr, context: &mut HashMap<String, Expr>) -> Result<Expr, EvalError> {    
+pub fn eval<'src>(expr: &'src SpannedExpr, context: &mut HashMap<String, Expr>) -> Result<Flow, EvalError> {    
     match &expr.node {
-        Expr::Int(n) => Ok(Expr::Int(*n)),
-        Expr::Float(f) => Ok(Expr::Float(*f)),
-        Expr::String(s) => Ok(Expr::String(s.clone())),
-        Expr::Bool(b) => Ok(Expr::Bool(*b)),
-        Expr::Null => Ok(Expr::Null),
+        Expr::Int(n) => Ok(Flow::Continue(Expr::Int(*n))),
+        Expr::Float(f) => Ok(Flow::Continue(Expr::Float(*f))),
+        Expr::String(s) => Ok(Flow::Continue(Expr::String(s.clone()))),
+        Expr::Bool(b) => Ok(Flow::Continue(Expr::Bool(*b))),
+        Expr::Null => Ok(Flow::Continue(Expr::Null)),
 
         Expr::Neg(inner) => {
-            let value = eval(inner, context)?;
+            let value = eval(inner, context)?.unwrap();
 
             match value {
-                Expr::Int(n) => Ok(Expr::Int(-n)),
-                Expr::Float(f) => Ok(Expr::Float(-f)),
+                Expr::Int(n) => Ok(Flow::Continue(Expr::Int(-n))),
+                Expr::Float(f) => Ok(Flow::Continue(Expr::Float(-f))),
                 _ => Err(EvalError {
                     message: format!("Cannot negate value: {:?}", value),
                     message_short: "cannot negate".to_string(),
@@ -39,15 +55,15 @@ pub fn eval<'src>(expr: &'src SpannedExpr, context: &mut HashMap<String, Expr>) 
         }
 
         Expr::Add(left, right) => {
-            let left_value = eval(left, context)?;
-            let right_value = eval(right, context)?;
+            let left_value = eval(left, context)?.unwrap();
+            let right_value = eval(right, context)?.unwrap();
 
             match (left_value, right_value) {
-                (Expr::Int(l), Expr::Int(r)) => Ok(Expr::Int(l + r)),
-                (Expr::Float(l), Expr::Float(r)) => Ok(Expr::Float(l + r)),
-                (Expr::Int(l), Expr::Float(r)) => Ok(Expr::Float(l as f64 + r)),
-                (Expr::Float(l), Expr::Int(r)) => Ok(Expr::Float(l + r as f64)),
-                (Expr::String(l), Expr::String(r)) => Ok(Expr::String(l + &r)),
+                (Expr::Int(l), Expr::Int(r)) => Ok(Flow::Continue(Expr::Int(l + r))),
+                (Expr::Float(l), Expr::Float(r)) => Ok(Flow::Continue(Expr::Float(l + r))),
+                (Expr::Int(l), Expr::Float(r)) => Ok(Flow::Continue(Expr::Float(l as f64 + r))),
+                (Expr::Float(l), Expr::Int(r)) => Ok(Flow::Continue(Expr::Float(l + r as f64))),
+                (Expr::String(l), Expr::String(r)) => Ok(Flow::Continue(Expr::String(l + &r))),
 
                 _ => Err(EvalError {
                     message: format!("Cannot add values: {:?} + {:?}", left.node, right.node),
@@ -58,14 +74,14 @@ pub fn eval<'src>(expr: &'src SpannedExpr, context: &mut HashMap<String, Expr>) 
         }
 
         Expr::Sub(left, right) => {
-            let left_value = eval(left, context)?;
-            let right_value = eval(right, context)?;
+            let left_value = eval(left, context)?.unwrap();
+            let right_value = eval(right, context)?.unwrap();
 
             match (left_value, right_value) {
-                (Expr::Int(l), Expr::Int(r)) => Ok(Expr::Int(l - r)),
-                (Expr::Float(l), Expr::Float(r)) => Ok(Expr::Float(l - r)),
-                (Expr::Int(l), Expr::Float(r)) => Ok(Expr::Float(l as f64 - r)),
-                (Expr::Float(l), Expr::Int(r)) => Ok(Expr::Float(l - r as f64)),
+                (Expr::Int(l), Expr::Int(r)) => Ok(Flow::Continue(Expr::Int(l - r))),
+                (Expr::Float(l), Expr::Float(r)) => Ok(Flow::Continue(Expr::Float(l - r))),
+                (Expr::Int(l), Expr::Float(r)) => Ok(Flow::Continue(Expr::Float(l as f64 - r))),
+                (Expr::Float(l), Expr::Int(r)) => Ok(Flow::Continue(Expr::Float(l - r as f64))),
                 
                 _ => Err(EvalError {
                     message: format!("Cannot subtract values: {:?} - {:?}", left.node, right.node),
@@ -77,7 +93,7 @@ pub fn eval<'src>(expr: &'src SpannedExpr, context: &mut HashMap<String, Expr>) 
 
         Expr::Identifier(name) => {
             match context.get(name) {
-                Some(value) => Ok(value.clone()),
+                Some(value) => Ok(Flow::Continue(value.clone())),
                 None => Err(EvalError {
                     message: format!("Undefined variable: {}", name),
                     message_short: "not defined".to_string(),
@@ -91,9 +107,10 @@ pub fn eval<'src>(expr: &'src SpannedExpr, context: &mut HashMap<String, Expr>) 
                 .map(|arg| {
                     match eval(arg, context) {
                         Ok(v) => Ok(SpannedExpr {
-                            node: v,
+                            node: v.unwrap(),
                             span: arg.span,
                         }),
+
                         Err(e) => Err(e),
                     }
                 })
@@ -112,7 +129,7 @@ pub fn eval<'src>(expr: &'src SpannedExpr, context: &mut HashMap<String, Expr>) 
                             }
 
                             match func(evaluated_args?) {
-                                Ok(response) => Ok(response.return_value.node),
+                                Ok(response) => Ok(Flow::Continue(response.return_value.node)),
                                 Err((msg, span)) => Err(EvalError {
                                     message: msg.clone(),
                                     message_short: msg,
@@ -138,15 +155,30 @@ pub fn eval<'src>(expr: &'src SpannedExpr, context: &mut HashMap<String, Expr>) 
         }
 
         Expr::Let { name, value } => {
-            match eval(value, context) {
-                Ok(v) => {
-                    context.insert(name.clone(), v);
-                    
-                    Ok(Expr::Null)
-                }
+            let value = eval(value, context)?.unwrap();
+            context.insert(name.clone(), value);
+            
+            Ok(Flow::Continue(Expr::Null))
 
-                Err(e) => Err(e),
+        }
+
+        Expr::Block(exprs) => {
+            let preexisting_keys = context.keys().cloned().collect::<Vec<String>>();
+
+            for e in exprs {
+                match eval(e, context)? {
+                    Flow::Continue(_) => {},
+                    Flow::Return(v) => return Ok(Flow::Return(v)),
+                }
             }
+
+            for key in context.keys().cloned().collect::<Vec<String>>() {
+                if !preexisting_keys.contains(&key) {
+                    context.remove(&key);
+                }
+            }
+
+            Ok(Flow::Continue(Expr::Null))
         }
 
         v => {

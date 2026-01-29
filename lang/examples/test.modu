@@ -13,5 +13,8 @@ print(float(6));
 print(bool("true"));
 
 {
+    let h = "h";
+    print("\nwow im in a block");
     print(a + b);
 }
+
