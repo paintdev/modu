@@ -50,7 +50,13 @@ impl std::fmt::Display for Expr {
         match self {
             Expr::Int(n) => write!(f, "{}", n),
             Expr::Float(fl) => write!(f, "{}", fl),
-            Expr::String(s) => write!(f, "{}", s),
+            Expr::String(s) => write!(
+                f, "{}", 
+                s.replace("\\n", "\n")
+                    .replace("\\t", "\t")
+                    .replace("\\\"", "\"")
+                    .replace("\\\\", "\\")
+            ),
             Expr::Identifier(name) => write!(f, "{}", name),
             Expr::Bool(b) => write!(f, "{}", b),
             Expr::Null => write!(f, "null"),
