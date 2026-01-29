@@ -24,6 +24,54 @@ pub fn eval<'src>(expr: &'src SpannedExpr, context: &mut HashMap<String, Expr>) 
         Expr::Bool(b) => Ok(Expr::Bool(*b)),
         Expr::Null => Ok(Expr::Null),
 
+        Expr::Neg(inner) => {
+            let value = eval(inner, context)?;
+
+            match value {
+                Expr::Int(n) => Ok(Expr::Int(-n)),
+                Expr::Float(f) => Ok(Expr::Float(-f)),
+                _ => Err(EvalError {
+                    message: format!("Cannot negate value: {:?}", value),
+                    message_short: "cannot negate".to_string(),
+                    span: expr.span,
+                }),
+            }
+        }
+
+        Expr::Add(left, right) => {
+            let left_value = eval(left, context)?;
+            let right_value = eval(right, context)?;
+
+            match (left_value, right_value) {
+                (Expr::Int(l), Expr::Int(r)) => Ok(Expr::Int(l + r)),
+                (Expr::Float(l), Expr::Float(r)) => Ok(Expr::Float(l + r)),
+                (Expr::Int(l), Expr::Float(r)) => Ok(Expr::Float(l as f64 + r)),
+                (Expr::Float(l), Expr::Int(r)) => Ok(Expr::Float(l + r as f64)),
+                _ => Err(EvalError {
+                    message: format!("Cannot add values: {:?} + {:?}", left.node, right.node),
+                    message_short: "cannot add".to_string(),
+                    span: expr.span,
+                }),
+            }
+        }
+
+        Expr::Sub(left, right) => {
+            let left_value = eval(left, context)?;
+            let right_value = eval(right, context)?;
+
+            match (left_value, right_value) {
+                (Expr::Int(l), Expr::Int(r)) => Ok(Expr::Int(l - r)),
+                (Expr::Float(l), Expr::Float(r)) => Ok(Expr::Float(l - r)),
+                (Expr::Int(l), Expr::Float(r)) => Ok(Expr::Float(l as f64 - r)),
+                (Expr::Float(l), Expr::Int(r)) => Ok(Expr::Float(l - r as f64)),
+                _ => Err(EvalError {
+                    message: format!("Cannot subtract values: {:?} - {:?}", left.node, right.node),
+                    message_short: "cannot subtract".to_string(),
+                    span: expr.span,
+                }),
+            }
+        }
+
         Expr::Identifier(name) => {
             match context.get(name) {
                 Some(value) => Ok(value.clone()),
@@ -87,9 +135,15 @@ pub fn eval<'src>(expr: &'src SpannedExpr, context: &mut HashMap<String, Expr>) 
         }
 
         Expr::Let { name, value } => {
-            context.insert(name.clone(), (*value).node.clone());
+            match eval(value, context) {
+                Ok(v) => {
+                    context.insert(name.clone(), v);
+                    
+                    Ok(Expr::Null)
+                }
 
-            Ok(Expr::Null)
+                Err(e) => Err(e),
+            }
         }
 
         v => {
