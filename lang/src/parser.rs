@@ -86,10 +86,8 @@ pub fn parse(input: &str, filename: &str, context: &mut HashMap<String, Expr>) {
 
             for expr in ast {
                 match evaulator::eval(&expr, context) {
-                    Ok(result) => {
-                        if sys_args.contains(&"--debug".to_string()) {
-                            println!("Result: {:?}", result);
-                        }
+                    Ok(_) => {
+                        
                     }
 
                     Err(e) => {
@@ -104,6 +102,8 @@ pub fn parse(input: &str, filename: &str, context: &mut HashMap<String, Expr>) {
                             .finish()
                             .print((filename, Source::from(input)))
                             .unwrap();
+
+                        return;
                     }
                 }
             }

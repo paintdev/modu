@@ -1,5 +1,6 @@
 use crate::lexer::Span;
 
+pub type SpannedExpr = Spanned<Expr>;
 #[derive(Debug, Clone)]
 pub struct Spanned<T> {
     pub node: T,
@@ -33,9 +34,22 @@ pub enum Expr {
 
     InternalFunction {
         name: String,
-        args: Vec<Spanned<Expr>>, // or __args__ for an optional amount
+        args: Vec<String>, // or __args__ for an optional amount
         func: fn(Vec<Spanned<Expr>>) -> Result<InternalFunctionResponse, (String, Span)>,
     }
 }
 
-pub type SpannedExpr = Spanned<Expr>;
+impl std::fmt::Display for Expr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Expr::Int(n) => write!(f, "{}", n),
+            Expr::Float(fl) => write!(f, "{}", fl),
+            Expr::String(s) => write!(f, "{}", s),
+            Expr::Identifier(name) => write!(f, "{}", name),
+            Expr::Bool(b) => write!(f, "{}", b),
+            Expr::Null => write!(f, "null"),
+
+            _ => write!(f, "{:?}", self),
+        }
+    }
+}

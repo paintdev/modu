@@ -4,5 +4,6 @@ let c = "hi";
 let d = true;
 let e = null;
 
-print(c);
-print("Hello, World!");
+print(a);
+print(test);
+print("Hello, ", "world!");

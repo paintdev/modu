@@ -6,6 +6,7 @@ mod lexer;
 mod parser;
 mod cli;
 mod utils;
+mod functions;
 
 fn main() {
     let args = std::env::args().collect::<Vec<String>>();

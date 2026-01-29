@@ -27,21 +27,45 @@ pub fn eval<'src>(expr: &'src SpannedExpr, context: &mut HashMap<String, Expr>) 
             match context.get(name) {
                 Some(value) => Ok(value.clone()),
                 None => Err(EvalError {
-                    message: format!("Undefined identifier: {}", name),
+                    message: format!("Undefined variable: {}", name),
                     span: expr.span,
                 }),
             }
         }
 
         Expr::Call { name, args } => {
-            let evaluated_args: Result<Vec<Expr>, EvalError> = args
-                .iter()
-                .map(|arg| eval(arg, context))
+            let evaluated_args: Result<Vec<SpannedExpr>, EvalError> = args.iter()
+                .map(|arg| {
+                    match eval(arg, context) {
+                        Ok(v) => Ok(SpannedExpr {
+                            node: v,
+                            span: arg.span,
+                        }),
+                        Err(e) => Err(e),
+                    }
+                })
                 .collect();
 
             match context.get(name) {
                 Some(v) => {
                     match v {
+                        Expr::InternalFunction { name, args, func } => {
+                            if !args.contains(&"__args__".to_string()) && args.len() != evaluated_args.as_ref().map_or(0, |a| a.len()) {
+                                return Err(EvalError {
+                                    message: format!("Function {} expects {} arguments, got {}", name, args.len(), evaluated_args.as_ref().map_or(0, |a| a.len())),
+                                    span: expr.span,
+                                });
+                            }
+
+                            match func(evaluated_args?) {
+                                Ok(response) => Ok(response.return_value.node),
+                                Err((msg, span)) => Err(EvalError {
+                                    message: msg,
+                                    span,
+                                }),
+                            }
+                        }
+
                         _ => Err(EvalError {
                             message: format!("{} is not a function", name),
                             span: expr.span,
