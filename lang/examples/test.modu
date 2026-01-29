@@ -1,6 +1,6 @@
 let a = 1;
-let b = 1.5;
-let c = "hi";
+let b = 1.5 + 1;
+let c = "h" + "i";
 let d = true;
 let e = null;
 

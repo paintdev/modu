@@ -1,5 +1,5 @@
-let a = 5;
-let b = -5;
+let a = 4 + 1;
+let b = -4 - 1;
 let c = a + b;
 
 print(a);

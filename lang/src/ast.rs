@@ -22,6 +22,10 @@ pub enum Expr {
     Bool(bool),
     Null,
 
+    Neg(Box<Spanned<Expr>>),
+    Add(Box<Spanned<Expr>>, Box<Spanned<Expr>>),
+    Sub(Box<Spanned<Expr>>, Box<Spanned<Expr>>),
+
     Call {
         name: String,
         args: Vec<Spanned<Expr>>,

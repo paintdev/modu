@@ -33,7 +33,40 @@ fn parser<'src>() -> impl Parser<
                 span: Span::from(start.start..end.end),
             });
 
-        call.or(atom)
+        let primary = call.or(atom);
+
+        let primary = select! { (Token::Minus, span) => span }
+            .repeated()
+            .collect::<Vec<Span>>()
+            .then(primary)
+            .map(|(neg, mut expr)| {
+                for neg_span in neg.into_iter().rev() {
+                    expr = SpannedExpr {
+                        node: Expr::Neg(Box::new(expr.clone())),
+                        span: Span::from(neg_span.start..expr.span.end),
+                    };
+                }
+
+                expr
+            });
+
+        primary.clone()
+            .foldl(
+                choice((
+                    select! { (Token::Plus, span) => span }.then(primary.clone()).map(|(span, right)| (Token::Plus, span, right)),
+                    select! { (Token::Minus, span) => span }.then(primary.clone()).map(|(span, right)| (Token::Minus, span, right)),
+                ))
+                .repeated(),
+
+                |left, (op, span, right)| SpannedExpr {
+                    node: match op {
+                        Token::Plus => Expr::Add(Box::new(left.clone()), Box::new(right.clone())),
+                        Token::Minus => Expr::Sub(Box::new(left.clone()), Box::new(right.clone())),
+                        _ => unreachable!(),
+                    },
+                    span: Span::from(left.span.start..right.span.end),
+                }
+            )
     });
 
     let let_stmt = select! { (Token::Let, span) => span }
@@ -97,7 +130,7 @@ pub fn parse(input: &str, filename: &str, context: &mut HashMap<String, Expr>) {
                             .with_label(
                                 Label::new((filename, e.span.into_range()))
                                     .with_color(Color::Red)
-                                    .with_message(format!("{}", e.message)),
+                                    .with_message(format!("{}", e.message_short)),
                             )
                             .finish()
                             .print((filename, Source::from(input)))

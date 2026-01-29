@@ -63,6 +63,12 @@ pub enum Token {
 
     #[token(",")]
     Comma,
+    
+    #[token("+")]
+    Plus,
+
+    #[token("-")]
+    Minus,
 
     #[token("(")]
     LParen,
@@ -72,6 +78,9 @@ pub enum Token {
 
     #[regex(r"[ \t\n\f]+", logos::skip)]
     Whitespace,
+
+    #[regex(r"//[^\n]*", logos::skip, allow_greedy = true)]
+    Comment,
 }
 
 pub fn lex(input: &str) -> Result<Vec<(Token, Span)>, (LexingError, Span)> {

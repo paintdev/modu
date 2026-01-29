@@ -6,6 +6,7 @@ use crate::lexer::Span;
 #[derive(Debug)]
 pub struct EvalError {
     pub message: String,
+    pub message_short: String,
     pub span: Span,
 }
 
@@ -28,6 +29,7 @@ pub fn eval<'src>(expr: &'src SpannedExpr, context: &mut HashMap<String, Expr>) 
                 Some(value) => Ok(value.clone()),
                 None => Err(EvalError {
                     message: format!("Undefined variable: {}", name),
+                    message_short: "not defined".to_string(),
                     span: expr.span,
                 }),
             }
@@ -53,6 +55,7 @@ pub fn eval<'src>(expr: &'src SpannedExpr, context: &mut HashMap<String, Expr>) 
                             if !args.contains(&"__args__".to_string()) && args.len() != evaluated_args.as_ref().map_or(0, |a| a.len()) {
                                 return Err(EvalError {
                                     message: format!("Function {} expects {} arguments, got {}", name, args.len(), evaluated_args.as_ref().map_or(0, |a| a.len())),
+                                    message_short: format!("got {} arguments too many", evaluated_args.as_ref().map_or(0, |a| a.len()) - args.len()),
                                     span: expr.span,
                                 });
                             }
@@ -60,7 +63,8 @@ pub fn eval<'src>(expr: &'src SpannedExpr, context: &mut HashMap<String, Expr>) 
                             match func(evaluated_args?) {
                                 Ok(response) => Ok(response.return_value.node),
                                 Err((msg, span)) => Err(EvalError {
-                                    message: msg,
+                                    message: msg.clone(),
+                                    message_short: msg,
                                     span,
                                 }),
                             }
@@ -68,6 +72,7 @@ pub fn eval<'src>(expr: &'src SpannedExpr, context: &mut HashMap<String, Expr>) 
 
                         _ => Err(EvalError {
                             message: format!("{} is not a function", name),
+                            message_short: "not a function".to_string(),
                             span: expr.span,
                         })
                     }
@@ -75,6 +80,7 @@ pub fn eval<'src>(expr: &'src SpannedExpr, context: &mut HashMap<String, Expr>) 
 
                 None => Err(EvalError {
                     message: format!("Undefined function: {}", name),
+                    message_short: "not defined".to_string(),
                     span: expr.span,
                 }),
             }
@@ -89,6 +95,7 @@ pub fn eval<'src>(expr: &'src SpannedExpr, context: &mut HashMap<String, Expr>) 
         v => {
             Err(EvalError {
                 message: format!("Cannot evaluate expression: {:?}", v),
+                message_short: "cannot evaluate".to_string(),
                 span: expr.span,
             })
         }
