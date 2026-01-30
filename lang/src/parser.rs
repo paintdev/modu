@@ -18,6 +18,7 @@ fn parser<'src>() -> impl Parser<
             (Token::Bool(b), span) => SpannedExpr { node: Expr::Bool(b), span },
             (Token::Null, span) => SpannedExpr { node: Expr::Null, span },
             (Token::Break, span) => SpannedExpr { node: Expr::Break, span },
+            (Token::Continue, span) => SpannedExpr { node: Expr::Continue, span },
         };
 
         let call = select! { (Token::Identifier(name), span) => (name, span) }
@@ -311,6 +312,23 @@ pub fn parse(input: &str, filename: &str, context: &mut HashMap<String, Expr>) {
                                     .with_message("unexpected break statement"),
                             )
                             .with_help("Break statements can only be used inside loops")
+                            .finish()
+                            .print((filename, Source::from(input)))
+                            .unwrap();
+
+                        return;
+                    }
+
+                    Expr::Continue => {
+                        Report::build(ReportKind::Error, (filename, expr.span.into_range()))
+                            .with_code(5)
+                            .with_message("Continue statement not allowed in top-level")
+                            .with_label(
+                                Label::new((filename, expr.span.into_range()))
+                                    .with_color(Color::Red)
+                                    .with_message("unexpected continue statement"),
+                            )
+                            .with_help("Continue statements can only be used inside loops")
                             .finish()
                             .print((filename, Source::from(input)))
                             .unwrap();

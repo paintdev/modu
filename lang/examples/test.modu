@@ -52,5 +52,8 @@ loop {
     } else {
         print("i is ", i);
         let i = i + 1;
+
+        continue;
+        print("never prints :O");
     }
 }

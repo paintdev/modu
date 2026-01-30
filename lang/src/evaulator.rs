@@ -15,13 +15,14 @@ pub enum Flow {
     Continue(Expr),
     Return(Expr),
     Break,
+    Skip,
 }
 
 impl Flow {
     fn unwrap(self) -> Expr {
         match self {
             Flow::Continue(v) | Flow::Return(v) => v,
-            Flow::Break => Expr::Null,
+            Flow::Break | Flow::Skip => Expr::Null,
         }
     }
 }
@@ -175,6 +176,11 @@ pub fn eval<'src>(expr: &'src SpannedExpr, context: &mut HashMap<String, Expr>) 
                                     message_short: "unexpected break".to_string(),
                                     span: expr.span,
                                 }),
+                                Flow::Skip => Err(EvalError {
+                                    message: "Unexpected skip in function".to_string(),
+                                    message_short: "unexpected skip".to_string(),
+                                    span: expr.span,
+                                }),
                             }
                         }
 
@@ -220,6 +226,7 @@ pub fn eval<'src>(expr: &'src SpannedExpr, context: &mut HashMap<String, Expr>) 
                     Flow::Continue(_) => {},
                     Flow::Return(v) => return Ok(Flow::Return(v)),
                     Flow::Break => return Ok(Flow::Break),
+                    Flow::Skip => return Ok(Flow::Skip),
                 }
             }
 
@@ -238,6 +245,7 @@ pub fn eval<'src>(expr: &'src SpannedExpr, context: &mut HashMap<String, Expr>) 
                     Flow::Continue(_) => {},
                     Flow::Return(v) => return Ok(Flow::Return(v)),
                     Flow::Break => return Ok(Flow::Continue(Expr::Null)),
+                    Flow::Skip => continue,
                 }
             }
         }
@@ -278,6 +286,7 @@ pub fn eval<'src>(expr: &'src SpannedExpr, context: &mut HashMap<String, Expr>) 
                             Flow::Continue(_) => {},
                             Flow::Return(v) => return Ok(Flow::Return(v)),
                             Flow::Break => break,
+                            Flow::Skip => continue,
                         }
                     }
 
@@ -316,6 +325,7 @@ pub fn eval<'src>(expr: &'src SpannedExpr, context: &mut HashMap<String, Expr>) 
                             Flow::Continue(_) => {},
                             Flow::Return(v) => return Ok(Flow::Return(v)),
                             Flow::Break => break,
+                            Flow::Skip => continue,
                         }
                     }
 
@@ -337,6 +347,10 @@ pub fn eval<'src>(expr: &'src SpannedExpr, context: &mut HashMap<String, Expr>) 
 
         Expr::Break => {
             Ok(Flow::Break)
+        },
+
+        Expr::Continue => {
+            Ok(Flow::Skip)
         },
 
         Expr::Equal(left, right) => {

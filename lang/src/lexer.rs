@@ -67,6 +67,9 @@ pub enum Token {
     #[token("break")]
     Break,
 
+    #[token("continue")]
+    Continue,
+
     #[token("fn")]
     Function,
 

@@ -23,6 +23,7 @@ pub enum Expr {
     Return(Box<Spanned<Expr>>),
     Null,
     Break,
+    Continue,
 
     Neg(Box<Spanned<Expr>>),
     Add(Box<Spanned<Expr>>, Box<Spanned<Expr>>),
