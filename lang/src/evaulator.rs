@@ -538,7 +538,27 @@ pub fn eval<'src>(expr: &'src SpannedExpr, context: &mut HashMap<String, Expr>) 
                     });
                 }
             } else {
+                let module = crate::libraries::get_package(name).ok_or(EvalError {
+                    message: format!("No such package: {}", name),
+                    message_short: "no such package".to_string(),
+                    span: expr.span,
+                })?;
 
+                if import_as == "*" {
+                    if let Expr::Module { symbols } = module {
+                        for (k, v) in symbols {
+                            context.insert(k, v.node);
+                        }
+                    } else {
+                        return Err(EvalError {
+                            message: format!("package {} is not a module", name),
+                            message_short: "not a module".to_string(),
+                            span: expr.span,
+                        });
+                    }
+                } else {
+                    context.insert(import_as.clone(), module);
+                }
             }
 
             Ok(Flow::Continue(Expr::Null))
