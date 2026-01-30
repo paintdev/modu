@@ -201,6 +201,29 @@ fn parser<'src>() -> impl Parser<
                 span: Span::from(start.start..body.span.end),
             });
         
+        let if_stmt = select! { (Token::If, span) => span }
+            .then(expr.clone())
+            .then(block.clone())
+            .then(
+                select! { (Token::Else, span) => span }
+                    .then(block.clone())
+                    .or_not()
+            )
+            .map(|(((start, condition), then_branch), else_branch): (((Span, SpannedExpr), SpannedExpr), Option<(Span, SpannedExpr)>)| SpannedExpr {
+                node: Expr::If {
+                    condition: Box::new(condition.clone()),
+                    then_branch: Box::new(then_branch.clone()),
+                    else_branch: else_branch.clone().map(|(_, eb)| Box::new(eb.clone())),
+                },
+
+                span: Span::from(start.start..{
+                    match &else_branch {
+                        Some((_, eb)) => eb.span.end,
+                        None => then_branch.span.end,
+                    }
+                }),
+            });
+        
         let retun_stmt = select! { (Token::Return, span) => span }
             .then(expr.clone().or_not())
             .then(select! { (Token::Semicolon, span) => span }.labelled("semicolon"))
@@ -221,6 +244,7 @@ fn parser<'src>() -> impl Parser<
             .or(fn_stmt)
             .or(infinite_loop_stmt)
             .or(for_loop_stmt)
+            .or(if_stmt)
             .or(retun_stmt)
             .or(block)
             .or(expr_stmt)

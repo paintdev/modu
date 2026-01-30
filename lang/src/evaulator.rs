@@ -445,6 +445,27 @@ pub fn eval<'src>(expr: &'src SpannedExpr, context: &mut HashMap<String, Expr>) 
             }
         },
 
+        Expr::If { condition, then_branch, else_branch } => {
+            let condition_value = eval(condition, context)?.unwrap();
+
+            match condition_value {
+                Expr::Bool(true) => eval(then_branch, context),
+                Expr::Bool(false) => {
+                    if let Some(else_branch) = else_branch {
+                        eval(else_branch, context)
+                    } else {
+                        Ok(Flow::Continue(Expr::Null))
+                    }
+                },
+                
+                _ => Err(EvalError {
+                    message: format!("Condition must be a boolean, got {:?}", condition_value),
+                    message_short: "invalid condition".to_string(),
+                    span: expr.span,
+                }),
+            }
+        }
+
         v => {
             Err(EvalError {
                 message: format!("No evaluator for {:?}", v),

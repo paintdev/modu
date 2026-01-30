@@ -49,8 +49,8 @@ let i = 0;
 loop {
     if i > 3 {
         break;
+    } else {
+        print("i is ", i);
+        let i = i + 1;
     }
-
-    print("i is ", i);
-    let i = i + 1;
 }
