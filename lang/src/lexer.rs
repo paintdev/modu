@@ -73,6 +73,12 @@ pub enum Token {
     #[token("fn")]
     Function,
 
+    #[token("import")]
+    Import,
+
+    #[token("as")]
+    As,
+
     #[token("if")]
     If,
 
@@ -87,6 +93,12 @@ pub enum Token {
 
     #[token(",")]
     Comma,
+
+    #[token(".")]
+    Dot,
+
+    #[token("*")]
+    Star,
     
     #[token("+")]
     Plus,

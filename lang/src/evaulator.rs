@@ -480,6 +480,57 @@ pub fn eval<'src>(expr: &'src SpannedExpr, context: &mut HashMap<String, Expr>) 
             }
         }
 
+        Expr::Import { name, import_as } => {
+            let import_as = match import_as {
+                Some(as_name) => as_name.clone(),
+                None => name.clone(),
+            };
+
+            if name.ends_with(".modu") {
+                let mut path = std::env::current_dir().unwrap();
+                
+                let sys_args = std::env::args().collect::<Vec<String>>();
+                if sys_args.len() > 2 && sys_args[1] == "run" {
+                    path.push(&sys_args[2]);
+                    path.pop();
+                }
+
+                path.push(name);
+                
+                let source = std::fs::read_to_string(path.clone()).map_err(|e| EvalError {
+                    message: format!("Failed to read module file {}: {}", name, e),
+                    message_short: "failed to read module".to_string(),
+                    span: expr.span,
+                })?;
+
+                let mut new_context = crate::utils::create_context();
+                crate::parser::parse(&source, path.to_str().unwrap(), &mut new_context);
+
+                if import_as == "*" {
+                    for (k, v) in new_context {
+                        context.insert(k, v);
+                    }
+                } else {
+                    let mut symbols = HashMap::new();
+
+                    for (k, v) in new_context.iter().filter(|(k, _)| !crate::utils::create_context().contains_key(*k)) {
+                        symbols.insert(k.clone(), SpannedExpr {
+                            node: v.clone(),
+                            span: expr.span,
+                        });
+                    }
+
+                    context.insert(import_as.clone().replace(".modu", ""), Expr::Module {
+                        symbols,
+                    });
+                }
+            } else {
+
+            }
+
+            Ok(Flow::Continue(Expr::Null))
+        }
+
         v => {
             Err(EvalError {
                 message: format!("No evaluator for {:?}", v),

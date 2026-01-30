@@ -240,12 +240,39 @@ fn parser<'src>() -> impl Parser<
                 ),
                 span: Span::from(start.start..end.end),
             });
+        
+        let import_stmt = select! { (Token::Import, span) => span }
+            .then(expr.clone())
+            .then(
+                select! { (Token::As, span) => span }
+                    .then(
+                        select! { (Token::Identifier(name), _) => name }
+                            .or(select! { (Token::Star, _) => "*".to_string() })
+                    )
+                    .or_not()
+            )
+            .then(select! { (Token::Semicolon, span) => span }.labelled("semicolon"))
+            .map(|(((start, name_expr), import_as), end): (((Span, SpannedExpr), Option<(Span, String)>), Span)| {
+                let import_name = match name_expr.node {
+                    Expr::String(s) => s,
+                    _ => "".to_string(),
+                };
+
+                SpannedExpr {
+                    node: Expr::Import {
+                        name: import_name,
+                        import_as: import_as.map(|(_, n)| n),
+                    },
+                    span: Span::from(start.start..end.end),
+                }
+            });
                 
         let_stmt
             .or(fn_stmt)
             .or(infinite_loop_stmt)
             .or(for_loop_stmt)
             .or(if_stmt)
+            .or(import_stmt)
             .or(retun_stmt)
             .or(block)
             .or(expr_stmt)

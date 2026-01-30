@@ -57,3 +57,9 @@ loop {
         print("never prints :O");
     }
 }
+
+import "yapper.modu";
+import "yapper.modu" as yp;
+import "yapper.modu" as *;
+
+yap("hi");

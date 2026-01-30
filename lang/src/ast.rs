@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use crate::lexer::Span;
 
 pub type SpannedExpr = Spanned<Expr>;
@@ -24,6 +25,7 @@ pub enum Expr {
     Null,
     Break,
     Continue,
+    Star,
 
     Neg(Box<Spanned<Expr>>),
     Add(Box<Spanned<Expr>>, Box<Spanned<Expr>>),
@@ -51,6 +53,18 @@ pub enum Expr {
         name: String,
         args: Vec<String>,
         body: Box<Spanned<Expr>>,
+    },
+
+    // import "module" as module;
+    // or import "module" as *; // you can use like function() instead of module.function()
+    // or import "module"; // will import as the module name
+    Import {
+        name: String,
+        import_as: Option<String>,
+    },
+
+    Module {
+        symbols: HashMap<String, Spanned<Expr>>,
     },
 
     If {
