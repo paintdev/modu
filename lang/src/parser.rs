@@ -29,43 +29,47 @@ fn parser<'src>() -> impl Parser<
 
         let postfix = primary
             .foldl(
-                select! { (Token::Dot, _) => () }
-                    .ignore_then(select! { (Token::Identifier(name), span) => (name, span) })
-                    .repeated(),
-                |obj: SpannedExpr, prop: (String, Span)| SpannedExpr {
-                    node: Expr::PropertyAccess {
-                        object: Box::new(obj.clone()),
-                        property: prop.0,
-                    },
-                    span: Span::from(obj.span.start..prop.1.end),
-                }
-            );
-        
-        let call = postfix
-            .foldl(
-                select! { (Token::LParen, _) => () }
-                    .ignore_then(
-                        expr.clone()
-                            .separated_by(select! { (Token::Comma, _) => () })
-                            .allow_trailing()
-                            .collect::<Vec<_>>()
-                    )
-                    .then_ignore(select! { (Token::RParen, _) => () })
-                    .repeated(),
-                |callee: SpannedExpr, args: Vec<SpannedExpr>| SpannedExpr {
-                    span: callee.span.clone(),
-                    node: Expr::Call {
-                        callee: Box::new(callee),
-                        args,
-                    },
+                choice((
+                    select! { (Token::Dot, _) => () }
+                        .ignore_then(select! { (Token::Identifier(name), span) => (name, span) })
+                        .map(|(name, span)| (name, span, Vec::new())),
+                    
+                    select! { (Token::LParen, _) => () }
+                        .ignore_then(
+                            expr.clone()
+                                .separated_by(select! { (Token::Comma, _) => () })
+                                .allow_trailing()
+                                .collect::<Vec<_>>()
+                        )
+                        .then_ignore(select! { (Token::RParen, _) => () })
+                        .map(|args| (String::new(), Span::from(0..0), args))
+                )).repeated(),
+                |obj, (name, span, args)| {
+                    if !name.is_empty() {
+                        SpannedExpr {
+                            node: Expr::PropertyAccess {
+                                object: Box::new(obj.clone()),
+                                property: name,
+                            },
+                            span: Span::from(obj.span.start..span.end),
+                        }
+                    } else {
+                        SpannedExpr {
+                            span: obj.span.clone(),
+                            node: Expr::Call {
+                                callee: Box::new(obj.clone()),
+                                args,
+                            },
+                        }
+                    }
                 }
             );
 
         let unary = select! { (Token::Minus, span) => span }
             .repeated()
             .collect::<Vec<Span>>()
-            .then(call)
-            .map(|(neg, mut expr)| {
+            .then(postfix)
+            .map(|(neg, mut expr): (Vec<Span>, SpannedExpr)| {
                 for neg_span in neg.into_iter().rev() {
                     expr = SpannedExpr {
                         node: Expr::Neg(Box::new(expr.clone())),
@@ -84,7 +88,7 @@ fn parser<'src>() -> impl Parser<
                 ))
                 .repeated(),
 
-                |left, (op, span, right)| SpannedExpr {
+                |left: SpannedExpr, (op, _span, right): (Token, Span, SpannedExpr)| SpannedExpr {
                     node: match op {
                         Token::Plus => Expr::Add(Box::new(left.clone()), Box::new(right.clone())),
                         Token::Minus => Expr::Sub(Box::new(left.clone()), Box::new(right.clone())),
@@ -100,7 +104,7 @@ fn parser<'src>() -> impl Parser<
                     .then(additive.clone())
                     .or_not()
             )
-            .map(|(start, range)| {
+            .map(|(start, range): (SpannedExpr, Option<(Span, SpannedExpr)>)| {
                 match range {
                     Some((_, end)) => SpannedExpr {
                         node: Expr::Range {
@@ -120,7 +124,7 @@ fn parser<'src>() -> impl Parser<
                     .then(range.clone())
                     .or_not()
             )
-            .map(|(start, range)| {
+            .map(|(start, range): (SpannedExpr, Option<(Span, SpannedExpr)>)| {
                 match range {
                     Some((_, end)) => SpannedExpr {
                         node: Expr::InclusiveRange {
@@ -144,7 +148,7 @@ fn parser<'src>() -> impl Parser<
                     select! { (Token::GreaterThanOrEqual, span) => span }.then(inclusive_range.clone()).map(|(span, right)| (Token::GreaterThanOrEqual, span, right)),
                 )).repeated(),
 
-                |left, (op, _, right)| SpannedExpr {
+                |left: SpannedExpr, (op, _span, right): (Token, Span, SpannedExpr)| SpannedExpr {
                     node: match op {
                         Token::DoubleEqual => Expr::Equal(Box::new(left.clone()), Box::new(right.clone())),
                         Token::NotEqual => Expr::NotEqual(Box::new(left.clone()), Box::new(right.clone())),

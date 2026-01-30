@@ -1,4 +1,4 @@
-use crate::{ast::{Expr, InternalFunctionResponse, Spanned, SpannedExpr}, lexer::Span};
+use crate::{ast::{Expr, InternalFunctionResponse, Spanned}, lexer::Span};
 
 pub fn get(args: Vec<Spanned<Expr>>) -> Result<InternalFunctionResponse, (String, Span)> {
     let object = match &args[0].node {

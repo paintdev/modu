@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{ast::{Expr, InternalFunctionResponse, Spanned, SpannedExpr}, lexer::Span};
+use crate::{ast::{Expr, InternalFunctionResponse, Spanned}, lexer::Span};
 
 pub fn print(args: Vec<Spanned<Expr>>) -> Result<InternalFunctionResponse, (String, Span)> {
     for arg in args {

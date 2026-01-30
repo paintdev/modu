@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{ast::{Expr, InternalFunctionResponse, Spanned, SpannedExpr}, lexer::Span};
+use crate::{ast::{Expr, InternalFunctionResponse, Spanned}, lexer::Span};
 
 pub fn str(args: Vec<Spanned<Expr>>) -> Result<InternalFunctionResponse, (String, Span)> {
     let string = match &args[0].node {
