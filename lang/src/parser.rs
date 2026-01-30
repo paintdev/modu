@@ -3,6 +3,12 @@ use ariadne::{Color, Label, Report, ReportKind, Source};
 use chumsky::prelude::*;
 use crate::{ast::{Expr, SpannedExpr}, evaulator, lexer::{Span, Token, lex}};
 
+enum Postfix {
+    Property(String, Span),
+    Call(Vec<SpannedExpr>),
+    Index(SpannedExpr),
+}
+
 fn parser<'src>() -> impl Parser<
     'src, 
     &'src [(Token, Span)],
@@ -21,18 +27,33 @@ fn parser<'src>() -> impl Parser<
             (Token::Continue, span) => SpannedExpr { node: Expr::Continue, span },
         };
 
-        let primary = atom.or(
+        let array = select! { (Token::LBracket, span) => span }
+            .then(
+                expr.clone()
+                    .separated_by(select! { (Token::Comma, _) => () })
+                    .allow_trailing()
+                    .collect::<Vec<_>>()
+            )
+            .then(select! { (Token::RBracket, span) => span })
+            .map(|((start, elements), end): ((Span, Vec<SpannedExpr>), Span)| SpannedExpr {
+                node: Expr::Array(elements),
+                span: Span::from(start.start..end.end),
+            });
+
+        let primary = choice((
+            atom,
+            array,
             select! { (Token::LParen, _) => () }
                 .ignore_then(expr.clone())
                 .then_ignore(select! { (Token::RParen, _) => () })
-        );
+        ));
 
         let postfix = primary
             .foldl(
                 choice((
                     select! { (Token::Dot, _) => () }
-                        .ignore_then(select! { (Token::Identifier(name), span) => (name, span) })
-                        .map(|(name, span)| (name, span, Vec::new())),
+                        .then(select! { (Token::Identifier(name), span) => (name, span) })
+                        .map(|(_, (name, span))| Postfix::Property(name, span)),
                     
                     select! { (Token::LParen, _) => () }
                         .ignore_then(
@@ -41,28 +62,39 @@ fn parser<'src>() -> impl Parser<
                                 .allow_trailing()
                                 .collect::<Vec<_>>()
                         )
-                        .then_ignore(select! { (Token::RParen, _) => () })
-                        .map(|args| (String::new(), Span::from(0..0), args))
+                        .then_ignore(select! { (Token::RParen, span) => span })
+                        .map(Postfix::Call),
+
+                    select! { (Token::LBracket, _) => () }
+                        .ignore_then(expr.clone())
+                        .then_ignore(select! { (Token::RBracket, span) => span })
+                        .map(Postfix::Index),
                 )).repeated(),
-                |obj, (name, span, args)| {
-                    if !name.is_empty() {
-                        SpannedExpr {
-                            node: Expr::PropertyAccess {
-                                object: Box::new(obj.clone()),
-                                property: name,
-                            },
-                            span: Span::from(obj.span.start..span.end),
-                        }
-                    } else {
-                        SpannedExpr {
-                            span: obj.span.clone(),
-                            node: Expr::Call {
-                                callee: Box::new(obj.clone()),
-                                args,
-                            },
-                        }
-                    }
-                }
+                |obj, postfix| match postfix {
+                    Postfix::Property(name, span) => SpannedExpr {
+                        node: Expr::PropertyAccess {
+                            object: Box::new(obj.clone()),
+                            property: name,
+                        },
+                        span: Span::from(obj.span.start..span.end),
+                    },
+
+                    Postfix::Call(args) => SpannedExpr {
+                        span: obj.span.clone(),
+                        node: Expr::Call {
+                            callee: Box::new(obj.clone()),
+                            args,
+                        },
+                    },
+
+                    Postfix::Index(index) => SpannedExpr {
+                        span: Span::from(obj.span.start..index.span.end),
+                        node: Expr::IndexAccess {
+                            object: Box::new(obj.clone()),
+                            index: Box::new(index),
+                        },
+                    },
+                },
             );
 
         let unary = select! { (Token::Minus, span) => span }
@@ -160,7 +192,7 @@ fn parser<'src>() -> impl Parser<
                     },
                     span: Span::from(left.span.start..right.span.end),
                 }
-            )
+            ) 
     });
 
     let stmt = recursive(|stmt| {

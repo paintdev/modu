@@ -46,7 +46,13 @@ pub enum Expr {
         property: String,
     },
 
+    IndexAccess {
+        object: Box<Spanned<Expr>>,
+        index: Box<Spanned<Expr>>, // either abc[0] or abc["key"]
+    },
+
     Block(Vec<Spanned<Expr>>),
+    Array(Vec<Spanned<Expr>>),
 
     InternalFunction {
         name: String,

@@ -118,6 +118,12 @@ pub enum Token {
     #[token("}")]
     RBrace,
 
+    #[token("[")]
+    LBracket,
+
+    #[token("]")]
+    RBracket,
+
     #[token("..")]
     Range,
 
