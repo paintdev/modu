@@ -18,8 +18,6 @@ print(bool("true"));
     print(a + b);
 }
 
-print();
-
 fn add(x, y) {
     print("adding x and y");
     return x + y;
