@@ -54,3 +54,8 @@ fn encoding() {
 fn crypto() {
     run_test("crypto");
 }
+
+#[test]
+fn minsky() {
+    run_test("minskys_machine");
+}
