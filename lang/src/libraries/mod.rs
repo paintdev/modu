@@ -5,6 +5,7 @@ mod os;
 mod math;
 mod http;
 mod json;
+pub mod ffi;
 
 pub fn get_package(name: &str) -> Option<crate::ast::Expr> {
     match name {
@@ -29,6 +30,15 @@ pub fn get_package(name: &str) -> Option<crate::ast::Expr> {
             }
 
             Some(http::get_object())
+        },
+
+        "ffi" => {
+            let sys_args = std::env::args().collect::<Vec<String>>();
+            if sys_args.len() > 1 && sys_args[1] == "server" {
+                return None;
+            }
+
+            Some(ffi::get_object())
         }
         _ => None,
     }

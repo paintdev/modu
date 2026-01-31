@@ -1,4 +1,7 @@
 use std::collections::HashMap;
+use libloading::Library;
+use std::sync::Arc;
+
 use crate::lexer::Span;
 
 pub type SpannedExpr = Spanned<Expr>;
@@ -25,7 +28,6 @@ pub enum Expr {
     Null,
     Break,
     Continue,
-    Star,
 
     Neg(Box<Spanned<Expr>>),
     Add(Box<Spanned<Expr>>, Box<Spanned<Expr>>),
@@ -77,6 +79,8 @@ pub enum Expr {
     Module {
         symbols: HashMap<String, Spanned<Expr>>,
     },
+
+    FFILibrary(Arc<Library>),
 
     Object {
         properties: HashMap<String, Expr>,

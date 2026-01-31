@@ -84,6 +84,10 @@ pub fn eval<'src>(expr: &'src SpannedExpr, context: &mut HashMap<String, Expr>) 
                     }
                 }
 
+                Expr::FFILibrary(library) => {
+                    Ok(Flow::Continue(Expr::FFILibrary(library)))
+                }
+
                 _ => Err(EvalError {
                     message: format!("Cannot access property {} of {:?}", property, object),
                     message_short: "cannot access property".to_string(),
@@ -287,6 +291,26 @@ pub fn eval<'src>(expr: &'src SpannedExpr, context: &mut HashMap<String, Expr>) 
                         Flow::Skip => Err(EvalError {
                             message: "Unexpected skip in function".to_string(),
                             message_short: "unexpected skip".to_string(),
+                            span: expr.span,
+                        }),
+                    }
+                }
+
+                Expr::FFILibrary(library) => {
+                    let result = crate::libraries::ffi::execute_ffi_call(
+                        &library,
+                        match &callee.node {
+                            Expr::PropertyAccess { property, .. } => property,
+                            _ => unreachable!(),
+                        },
+                        evaluated_args,
+                    );
+
+                    match result {
+                        Ok(value) => Ok(Flow::Continue(value)),
+                        Err(msg) => Err(EvalError {
+                            message: msg.clone(),
+                            message_short: msg,
                             span: expr.span,
                         }),
                     }
@@ -660,6 +684,8 @@ pub fn eval<'src>(expr: &'src SpannedExpr, context: &mut HashMap<String, Expr>) 
                                     span: expr.span,
                                 });
                             }
+                        } else {
+                            context.insert(import_as.clone(), module);
                         }
                     }
 
