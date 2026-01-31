@@ -53,7 +53,7 @@ pub fn exec(args: Vec<Spanned<Expr>>) -> Result<InternalFunctionResponse, (Strin
     let stdout = String::from_utf8_lossy(&output.stdout).to_string();
     let stderr = String::from_utf8_lossy(&output.stderr).to_string();
 
-    let combined_output = format!("{}{}", stdout, stderr);
+    let combined_output = format!("{}{}", stdout, stderr).trim_end().to_string();
 
     Ok(InternalFunctionResponse {
         return_value: Expr::String(combined_output),

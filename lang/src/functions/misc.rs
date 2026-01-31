@@ -17,15 +17,8 @@ pub fn print(args: Vec<Spanned<Expr>>) -> Result<InternalFunctionResponse, (Stri
 pub fn input(args: Vec<Spanned<Expr>>) -> Result<InternalFunctionResponse, (String, Span)> {
     use std::io::{self, Write};
 
-    if args.len() > 1 {
-        return Err((
-            "input function takes at most one argument".to_string(),
-            args[1].span,
-        ));
-    }
-
-    if args.len() == 1 {
-        print!("{}", args[0].node);
+    for arg in args {
+        print!("{}", arg.node);
     }
     
     io::stdout().flush().unwrap();
