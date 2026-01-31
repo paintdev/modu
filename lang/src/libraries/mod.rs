@@ -5,6 +5,7 @@ mod os;
 mod math;
 mod http;
 mod json;
+mod crypto;
 pub mod ffi;
 
 pub fn get_package(name: &str) -> Option<crate::ast::Expr> {
@@ -14,6 +15,7 @@ pub fn get_package(name: &str) -> Option<crate::ast::Expr> {
         "uuid" => Some(uuid::get_object()),
         "math" => Some(math::get_object()),
         "json" => Some(json::get_object()),
+        "crypto" => Some(crypto::get_object()),
 
         "os" => {
             let sys_args = std::env::args().collect::<Vec<String>>();
