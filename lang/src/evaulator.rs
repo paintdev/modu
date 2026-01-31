@@ -594,6 +594,22 @@ pub fn eval<'src>(expr: &'src SpannedExpr, context: &mut HashMap<String, Expr>) 
                 path.pop();
             }
 
+            if context.contains_key("CURRENTLY_PARSING_MODULE_PATH") {
+                if let Expr::String(current_module_path) = context.get("CURRENTLY_PARSING_MODULE_PATH").unwrap() {
+                    let mut module_path = std::path::PathBuf::from(current_module_path);
+                    module_path.pop();
+                    path = module_path;
+                }
+            }
+
+            if context.contains_key("CURRENTLY_PARSING_PACKAGE_NAME") {
+                if let Expr::String(current_package_name) = context.get("CURRENTLY_PARSING_PACKAGE_NAME").unwrap() {
+                    path.push(".modu");
+                    path.push("packages");
+                    path.push(current_package_name);
+                }
+            }
+
             if name.ends_with(".modu") {
                 path.push(name);
                 
@@ -604,6 +620,11 @@ pub fn eval<'src>(expr: &'src SpannedExpr, context: &mut HashMap<String, Expr>) 
                 })?;
 
                 let mut new_context = crate::utils::create_context();
+                new_context.insert(
+                    "CURRENTLY_PARSING_MODULE_PATH".to_string(),
+                    Expr::String(path.to_str().unwrap().to_string())
+                );
+
                 crate::parser::parse(&source, path.to_str().unwrap(), &mut new_context);
 
                 if import_as == "*" {
@@ -663,6 +684,15 @@ pub fn eval<'src>(expr: &'src SpannedExpr, context: &mut HashMap<String, Expr>) 
                         })?;
 
                         let mut new_context = crate::utils::create_context();
+                        new_context.insert(
+                            "CURRENTLY_PARSING_PACKAGE_PATH".to_string(),
+                            Expr::String(path.to_str().unwrap().to_string())
+                        );
+                        new_context.insert(
+                            "CURRENTLY_PARSING_PACKAGE_NAME".to_string(),
+                            Expr::String(name.clone()),
+                        );
+
                         crate::parser::parse(&source, path.to_str().unwrap(), &mut new_context);
 
                         if import_as == "*" {
