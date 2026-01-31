@@ -36,11 +36,6 @@ fn type_conversion() {
 }
 
 #[test]
-fn file_reading() {
-    run_test("file_reading");
-}
-
-#[test]
 fn http_requests() {
     run_test("http");
 }

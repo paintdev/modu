@@ -45,7 +45,7 @@ fn main() {
             "install" => cli::install::install(),
             "uninstall" => cli::uninstall::uninstall(),
             "--version" => {
-                println!("Modu v1.3.0");
+                println!("Modu v2.0.0");
             }
 
             action => {
