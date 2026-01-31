@@ -640,6 +640,62 @@ pub fn eval<'src>(expr: &'src SpannedExpr, context: &mut HashMap<String, Expr>) 
             Ok(Flow::Continue(Expr::Null))
         }
 
+        Expr::Array(elements) => {
+            let mut evaluated_elements = Vec::new();
+
+            for element in elements {
+                let value = eval(element, context)?.unwrap();
+                evaluated_elements.push(SpannedExpr {
+                    node: value,
+                    span: element.span,
+                });
+            }
+
+            Ok(Flow::Continue(Expr::Array(evaluated_elements)))
+        }
+
+        Expr::IndexAccess { object, index } => {
+            let object_value = eval(object, context)?.unwrap();
+            let index_value = eval(index, context)?.unwrap();
+            
+            match (object_value, index_value) {
+                (Expr::Array(elements), Expr::Int(i)) => {
+                    let idx = if i < 0 {
+                        elements.len() as i64 + i
+                    } else {
+                        i
+                    };
+
+                    if idx < 0 || idx >= elements.len() as i64 {
+                        return Err(EvalError {
+                            message: format!("Array index out of bounds: {}", i),
+                            message_short: "index out of bounds".to_string(),
+                            span: expr.span,
+                        });
+                    }
+
+                    Ok(Flow::Continue(elements[idx as usize].node.clone()))
+                }
+
+                (Expr::Object { properties }, Expr::String(key)) => {
+                    match properties.get(&key) {
+                        Some(value) => Ok(Flow::Continue(value.clone())),
+                        None => Err(EvalError {
+                            message: format!("Object has no property named {}", key),
+                            message_short: "no such property".to_string(),
+                            span: expr.span,
+                        }),
+                    }
+                }
+
+                (v, _) => Err(EvalError {
+                    message: format!("Cannot index into value: {:?}", v),
+                    message_short: "cannot index".to_string(),
+                    span: expr.span,
+                }),
+            }
+        }
+
         v => {
             Err(EvalError {
                 message: format!("No evaluator for {:?}", v),

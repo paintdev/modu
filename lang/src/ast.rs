@@ -56,7 +56,7 @@ pub enum Expr {
 
     InternalFunction {
         name: String,
-        args: Vec<String>, // or __args__ for an optional amount
+        args: Vec<String>, // Vec<"__args__"> for an optional amount
         func: fn(Vec<Spanned<Expr>>) -> Result<InternalFunctionResponse, (String, Span)>,
     },
 
@@ -131,6 +131,30 @@ impl std::fmt::Display for Expr {
             Expr::Identifier(name) => write!(f, "{}", name),
             Expr::Bool(b) => write!(f, "{}", b),
             Expr::Null => write!(f, "null"),
+
+            Expr::Array(elements) => {
+                write!(f, "[")?;
+
+                for (i, element) in elements.iter().enumerate() {
+                    if let Expr::String(s) = &element.node {
+                        write!(
+                            f, "\"{}\"",
+                            s.replace("\\n", "\n")
+                                .replace("\\t", "\t")
+                                .replace("\\\"", "\"")
+                                .replace("\\\\", "\\")
+                        )?;
+                    } else {
+                        write!(f, "{}", element.node)?;
+                    }
+
+                    if i != elements.len() - 1 {
+                        write!(f, ", ")?;
+                    }
+                }
+
+                write!(f, "]")
+            }
 
             _ => write!(f, "{:?}", self),
         }
