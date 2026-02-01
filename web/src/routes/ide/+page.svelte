@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { PUBLIC_VITE_IDE_BACKEND } from "$env/static/public";
     import { Play, Download, Upload } from "lucide-svelte";
     import { basicSetup, EditorView } from "codemirror";
     import { EditorState, Compartment } from "@codemirror/state"

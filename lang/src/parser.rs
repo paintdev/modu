@@ -18,7 +18,7 @@ fn report_error(report: Report<'_, (&str, std::ops::Range<usize>)>, source_name:
 
     #[cfg(not(target_arch = "wasm32"))]
     {
-        let _ = report.eprint((source_name, Source::from(code)))?;
+        let _ = report.eprint((source_name, Source::from(code)));
     }
 }
 

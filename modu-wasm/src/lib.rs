@@ -1,5 +1,6 @@
 use wasm_bindgen::prelude::*;
 use std::sync::Mutex;
+use std::panic::{catch_unwind, AssertUnwindSafe};
 
 static STDOUT: Mutex<String> = Mutex::new(String::new());
 static STDERR: Mutex<String> = Mutex::new(String::new());
@@ -18,7 +19,20 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 pub fn eval_modu(code: &str) -> String {
     let mut context = modu::utils::create_context();
     
-    modu::parser::parse(code, "<browser>", &mut context);
+    let result = catch_unwind(AssertUnwindSafe(|| {
+        modu::parser::parse(code, "<browser>", &mut context);
+    }));
+
+    if let Err(panic) = result {
+        let msg = panic
+            .downcast_ref::<&str>()
+            .copied()
+            .or_else(|| panic.downcast_ref::<String>().map(String::as_str))
+            .unwrap_or("Unknown internal error");
+
+        let mut stderr = STDERR.lock().unwrap();
+        stderr.push_str(&format!("Internal error: {}\n", msg));
+    }
 
     let string = format!("{}{}", STDOUT.lock().unwrap().as_str(), STDERR.lock().unwrap().as_str());
 

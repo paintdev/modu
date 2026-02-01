@@ -612,27 +612,32 @@ pub fn eval<'src>(expr: &'src SpannedExpr, context: &mut HashMap<String, Expr>) 
                 None => name.clone(),
             };
 
-            let mut path = std::env::current_dir().unwrap();
+            let mut path: std::path::PathBuf = std::path::PathBuf::new();
+
+            #[cfg(not(target_arch = "wasm32"))]
+            {
+                path = std::env::current_dir().unwrap();
                 
-            let sys_args = std::env::args().collect::<Vec<String>>();
-            if sys_args.len() > 2 && sys_args[1] == "run" {
-                path.push(&sys_args[2]);
-                path.pop();
-            }
-
-            if context.contains_key("CURRENTLY_PARSING_MODULE_PATH") {
-                if let Expr::String(current_module_path) = context.get("CURRENTLY_PARSING_MODULE_PATH").unwrap() {
-                    let mut module_path = std::path::PathBuf::from(current_module_path);
-                    module_path.pop();
-                    path = module_path;
+                let sys_args = std::env::args().collect::<Vec<String>>();
+                if sys_args.len() > 2 && sys_args[1] == "run" {
+                    path.push(&sys_args[2]);
+                    path.pop();
                 }
-            }
 
-            if context.contains_key("CURRENTLY_PARSING_PACKAGE_NAME") {
-                if let Expr::String(current_package_name) = context.get("CURRENTLY_PARSING_PACKAGE_NAME").unwrap() {
-                    path.push(".modu");
-                    path.push("packages");
-                    path.push(current_package_name);
+                if context.contains_key("CURRENTLY_PARSING_MODULE_PATH") {
+                    if let Expr::String(current_module_path) = context.get("CURRENTLY_PARSING_MODULE_PATH").unwrap() {
+                        let mut module_path = std::path::PathBuf::from(current_module_path);
+                        module_path.pop();
+                        path = module_path;
+                    }
+                }
+
+                if context.contains_key("CURRENTLY_PARSING_PACKAGE_NAME") {
+                    if let Expr::String(current_package_name) = context.get("CURRENTLY_PARSING_PACKAGE_NAME").unwrap() {
+                        path.push(".modu");
+                        path.push("packages");
+                        path.push(current_package_name);
+                    }
                 }
             }
 
@@ -691,6 +696,7 @@ pub fn eval<'src>(expr: &'src SpannedExpr, context: &mut HashMap<String, Expr>) 
                         }
                     }
 
+                    #[cfg(not(target_arch = "wasm32"))]
                     None => {
                         path.push(".modu");
                         path.push("packages");
@@ -741,6 +747,15 @@ pub fn eval<'src>(expr: &'src SpannedExpr, context: &mut HashMap<String, Expr>) 
                                 symbols,
                             });
                         }
+                    }
+
+                    #[cfg(target_arch = "wasm32")]
+                    None => {
+                        return Err(EvalError {
+                            message: format!("Could not find package {}", name),
+                            message_short: "package not found".to_string(),
+                            span: expr.span,
+                        });
                     }
                 }
 
