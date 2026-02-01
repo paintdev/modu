@@ -84,6 +84,7 @@ pub fn eval<'src>(expr: &'src SpannedExpr, context: &mut HashMap<String, Expr>) 
                     }
                 }
 
+                #[cfg(not(target_arch = "wasm32"))]
                 Expr::FFILibrary(library) => {
                     Ok(Flow::Continue(Expr::FFILibrary(library)))
                 }
@@ -296,6 +297,7 @@ pub fn eval<'src>(expr: &'src SpannedExpr, context: &mut HashMap<String, Expr>) 
                     }
                 }
 
+                #[cfg(not(target_arch = "wasm32"))]
                 Expr::FFILibrary(library) => {
                     let result = crate::libraries::ffi::execute_ffi_call(
                         &library,

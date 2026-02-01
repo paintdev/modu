@@ -9,7 +9,6 @@ mod lexer;
 mod parser;
 mod cli;
 mod utils;
-mod functions;
 mod libraries;
 mod builtins;
 

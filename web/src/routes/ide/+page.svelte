@@ -10,6 +10,8 @@
     import { onMount } from "svelte";
     import { base } from "$app/paths";
 
+    import init, { eval_modu, modu_version } from "$lib/modu/modu_wasm.js";
+
     let language = new Compartment, tabsize = new Compartment;
     let moduVersion = "";
 
@@ -70,17 +72,16 @@ yap("Hello, World!");
 
     let view;
 
-    onMount(() => {
+    onMount(async () => {
         if (browser) {
+            await init();
+            moduVersion = modu_version();
+
             view = new EditorView({
                 state,
                 parent: document.querySelector("#code"),
             });
         }
-
-        fetch(PUBLIC_VITE_IDE_BACKEND + "/")
-            .then(res => res.text())
-            .then(version => moduVersion = version.split(" ")[1]);
     });
 
     let output = "Run the code to see the output";
@@ -91,27 +92,17 @@ yap("Hello, World!");
     async function run() {
         try {
             runClicked = true;
-            output = "Running...";
 
-            const res = await fetch(PUBLIC_VITE_IDE_BACKEND + "/eval", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "text/plain",
-                },
-                body: view.state.doc.toString(),
-            });
-
-            output = (await res.text()).trim().replace(ansiRegex, "");
-
-            if (output == "") {
-                output = "No output";
-            }
+            const code = view.state.doc.toString();
+            let result = eval_modu(code);
+        
+            output = result.replace(ansiRegex, "");
 
             setTimeout(() => {
                 runClicked = false;
             }, 1000);
         } catch (e) {
-            output = e.message;
+            output = "Error running code: " + e.message;
         }
     }
 
