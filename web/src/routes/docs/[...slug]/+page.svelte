@@ -2,9 +2,9 @@
     import { onMount } from 'svelte';
     import { marked } from 'marked';
     import { Menu, MoveLeft } from 'lucide-svelte';
-    import docData from '$lib/docs/data';
-    import "./docs.css";
     import { base } from '$app/paths';
+
+    import docData from '$lib/docs/data';
 
     export let data;
     $: {
@@ -45,11 +45,11 @@
         src="https://rawcdn.githack.com/cyteon/assets/d294f053d31b9b61beedab38577934a6bab764d7/prismjs/js/rust-only.js"
     ></script>
 
-    <meta name="title" content="Modu Documentation" />
-    <meta name="description" content="Documentation for the Modu programming language." />
+    <meta name="title" content="Modu Docs" />
+    <meta name="description" content="Docs for the Modu programming language" />
 </svelte:head>
 
-<div class="flex h-screen w-full">
+<div class="flex h-screen w-full docs">
     <div class={`h-screen overflow-y-auto bg-ctp-mantle p-2 border-r border-r-ctp-surface0 flex flex-col transition-all duration-300 ${sidebarOpen ? "w-64" : "w-16"}`}>
         <a href={base + "/"} class="flex text-xl font-bold transition-color duration-300 hover:bg-ctp-crust/80 p-2 rounded-md">
             <MoveLeft size={32} class="my-auto text-lg bg-ctp-base p-1 border border-ctp-surface0 rounded-md" />

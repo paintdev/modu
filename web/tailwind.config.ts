@@ -55,6 +55,19 @@ export default {
         },
       }),
     },
+
+    colors: {
+      "bg": "#282828",
+      "bg0_h": "#1d2021",
+      "bg1": "#3c3836",
+      "bg2": "#504945",
+      "fg0": "#fbf1c7",
+      "fg1": "#ebdbb2",
+      "fg2": "#d5c4a1",
+      "red": "#fb4934",
+      "yellow": "#fabd2f",
+      "blue": "#83a598",
+    }
   },
 
   plugins: [

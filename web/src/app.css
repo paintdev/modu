@@ -3,5 +3,22 @@
 @import 'tailwindcss/utilities';
 
 body {
-    @apply bg-ctp-base text-ctp-text;
+    @apply bg-bg text-fg0;
+}
+
+.docs h1 {
+    margin-bottom: 0 !important;
+}
+
+.docs h2 {
+    margin-top: 1.0666667em !important;
+}
+
+.docs pre {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+.docs code {
+    font-size: 1.2rem !important;
 }
