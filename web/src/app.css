@@ -22,3 +22,7 @@ body {
 .docs code {
     font-size: 1.2rem !important;
 }
+
+.ansi-red-fg {
+    @apply text-red;
+}

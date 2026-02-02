@@ -3,11 +3,12 @@
     import { basicSetup, EditorView } from "codemirror";
     import { EditorState, Compartment } from "@codemirror/state"
     import { rust } from "@codemirror/lang-rust";
-    import {tags} from "@lezer/highlight"
+    import { tags } from "@lezer/highlight"
     import { HighlightStyle, syntaxHighlighting } from "@codemirror/language"
     import { browser } from "$app/environment";
     import { onMount } from "svelte";
     import { base } from "$app/paths";
+    import { AnsiUp } from "ansi_up";
 
     import init, { eval_modu, modu_version } from "$lib/modu/modu_wasm.js";
 
@@ -86,7 +87,8 @@ yap("Hello, World!");
     let output = "Run the code to see the output";
     let runClicked = false;
 
-    const ansiRegex = /\x1b\[[0-9;]*m/g;
+    let ansi = new AnsiUp();
+    ansi.use_classes = true;
 
     async function run() {
         try {
@@ -109,8 +111,7 @@ yap("Hello, World!");
             }
 
             let result = eval_modu(code);
-        
-            output = result.replace(ansiRegex, "");
+            output = ansi.ansi_to_html(result);
 
             setTimeout(() => {
                 runClicked = false;
@@ -157,7 +158,7 @@ yap("Hello, World!");
         <p class="ml-2 mt-auto text-xl">{moduVersion ? `${moduVersion}` : ""}</p>
 
         <div class="ml-auto my-auto">
-            <a href="docs" class="text-2xl">Docs</a>
+            <a href="docs" class="text-2xl">docs</a>
         </div>
 
         <div class="ml-auto flex">
@@ -183,7 +184,7 @@ yap("Hello, World!");
 
         <div class="bg-bg1 w-full p-6 pt-4 h-full rounded-md flex flex-col md:w-1/3 border border-bg2">
             <h1 class="text-3xl font-bold">Output</h1>
-            <pre class="px-4 py-2 mt-4 text-xl break-words whitespace-pre-wrap bg-bg h-full">{output}</pre>
+            <pre class="px-4 py-2 mt-4 text-xl break-words whitespace-pre-wrap bg-bg h-full">{@html output}</pre>
         </div>
     </div>
 </div>
