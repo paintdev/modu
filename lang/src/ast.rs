@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+#[cfg(not(target_arch = "wasm32"))]
 use libloading::Library;
 use std::sync::Arc;
 
@@ -80,6 +81,7 @@ pub enum Expr {
         symbols: HashMap<String, Spanned<Expr>>,
     },
 
+    #[cfg(not(target_arch = "wasm32"))]
     FFILibrary(Arc<Library>),
 
     Object {

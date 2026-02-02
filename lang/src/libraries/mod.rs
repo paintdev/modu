@@ -1,11 +1,14 @@
 mod time;
 mod encoding;
 mod uuid;
+#[cfg(not(target_arch = "wasm32"))]
 mod os;
 mod math;
+#[cfg(not(target_arch = "wasm32"))]
 mod http;
 mod json;
 mod crypto;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod ffi;
 
 pub fn get_package(name: &str) -> Option<crate::ast::Expr> {
@@ -17,6 +20,7 @@ pub fn get_package(name: &str) -> Option<crate::ast::Expr> {
         "json" => Some(json::get_object()),
         "crypto" => Some(crypto::get_object()),
 
+        #[cfg(not(target_arch = "wasm32"))]
         "os" => {
             let sys_args = std::env::args().collect::<Vec<String>>();
             if sys_args.len() > 1 && sys_args[1] == "server" {
@@ -25,6 +29,8 @@ pub fn get_package(name: &str) -> Option<crate::ast::Expr> {
 
             Some(os::get_object())
         }
+
+        #[cfg(not(target_arch = "wasm32"))]
         "http" => {
             let sys_args = std::env::args().collect::<Vec<String>>();
             if sys_args.len() > 1 && sys_args[1] == "server" {
@@ -34,6 +40,7 @@ pub fn get_package(name: &str) -> Option<crate::ast::Expr> {
             Some(http::get_object())
         },
 
+        #[cfg(not(target_arch = "wasm32"))]
         "ffi" => {
             let sys_args = std::env::args().collect::<Vec<String>>();
             if sys_args.len() > 1 && sys_args[1] == "server" {

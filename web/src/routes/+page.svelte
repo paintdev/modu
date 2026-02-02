@@ -2,6 +2,8 @@
     import { Github, ExternalLink, Book, CircleHelp, Box, Code } from "lucide-svelte";
     import { base } from "$app/paths";
 
+    import Navbar from "$lib/navbar.svelte";
+
     let githubHovered = false;
     let cratesIoHovered = false;
     let moreExamplesHovered = false;
@@ -16,91 +18,34 @@
 </script>
 
 <svelte:head>
-    <link
-        href="https://rawcdn.githack.com/cyteon/assets/05f98dd21d2870fe70f1f8d51912ef0e2ee9c9c8/prismjs/css/mocha.css"
-        rel="stylesheet"
-    />
-
-    <script
-        src="https://rawcdn.githack.com/cyteon/assets/d294f053d31b9b61beedab38577934a6bab764d7/prismjs/js/rust-only.js"
-    ></script>
-
     <meta name="title" content="Modu" />
     <meta name="description" content="A simple and fast interpreted programming language." />
 </svelte:head>
 
 <div class="flex w-full max-w-screen h-screen flex-col max-w-screen overflow-x-hidden">
+    <Navbar />
+
     <div class="m-auto">
-        <div class="h-fit text-center pt-2">
-            <h1 class="text-9xl font-bold inline-block bg-clip-text bg-gradient-to-r from-ctp-red to-ctp-yellow to-75% text-transparent mb-8">Modu</h1>
-            
-            <div class="flex space-x-2 justify-center">
-                <a 
-                class="flex w-fit bg-white p-2 rounded-md text-ctp-mantle transition-all duration-300" 
-                href="https://github.com/cyteon/modu" target="_blank" 
-                on:mouseenter={() => githubHovered = true} 
-                on:mouseleave={() => githubHovered = false}
-            >
-                <Github size={24} class="my-auto" />
-                <span class="ml-1 text-xl">GitHub</span>
-                <ExternalLink size={20} class={`my-auto  ${githubHovered ? "w-6 ml-1" : "w-0"} transition-all duration-300`} />
-            </a>
-
-            <a 
-                class="flex w-fit bg-ctp-peach p-2 rounded-md text-ctp-mantle transition-all duration-300" 
-                href="https://crates.io/crates/modu" target="_blank" 
-                on:mouseenter={() => cratesIoHovered = true} 
-                on:mouseleave={() => cratesIoHovered = false}
-            >
-                <Box size={24} class="my-auto" />
-                <span class="ml-1 text-xl">Crates.io</span>
-                <ExternalLink size={20} class={`my-auto  ${cratesIoHovered ? "w-6 ml-1" : "w-0"} transition-all duration-300`} />
-            </a>
-            </div>
-        </div>
-
         <div class="flex flex-col px-2 md:mx-auto">
-            <div class="mx-auto bg-ctp-mantle p-4 rounded-md border border-ctp-surface0 my-4">
+            <div class="mx-auto bg-bg1 p-4 rounded-md border border-bg2 my-4">
                 <p class="text-xl whitespace-pre-wrap">
 Modu is a simple and fast interpreted programming language. 
 It is designed to be easy to learn and use like python.
 But with the speed and efficiency of rust :D
 With streamlined error messages for easy debugging</p>
             </div>
+        </div>
 
-            <div class="mx-auto space-y-2 flex-col flex md:flex-row md:space-x-4 md:space-y-0">
-                <a 
-                    href={base + "/examples"}
-                    class="bg-ctp-blue text-ctp-crust text-xl p-2 rounded-md text-center w-full flex md:w-fit"
-                    on:mouseenter={() => moreExamplesHovered = true}
-                    on:mouseleave={() => moreExamplesHovered = false}
-                >
-                    <CircleHelp size={20} class="my-auto" />
-                    <span class="ml-2">More Examples</span>
-                    <ExternalLink size={20} class={`my-auto ${moreExamplesHovered ? "w-6 ml-1" : "w-0"} transition-all duration-300`} />
-                </a>
-
-                <a 
-                    href={base + "/docs/quickstart"}
-                    class="bg-ctp-pink text-ctp-crust text-xl p-2 rounded-md text-center w-full flex md:w-fit"
-                    on:mouseenter={() => docsHovered = true}
-                    on:mouseleave={() => docsHovered = false}
-                >
-                    <Book size={20} class="my-auto" />
-                    <span class="ml-2">Docs</span>
-                    <ExternalLink size={20} class={`my-auto ${docsHovered ? "w-6 ml-1" : "w-0"} transition-all duration-300`} />
-                </a>
-
-                <a 
-                    href={base + "/ide"}
-                    class="bg-ctp-yellow text-ctp-crust text-xl p-2 rounded-md text-center w-full flex md:w-fit"
-                    on:mouseenter={() => ideHovered = true}
-                    on:mouseleave={() => ideHovered = false}
-                >
-                    <Code size={20} class="my-auto" />
-                    <span class="ml-2">Web IDE</span>
-                    <ExternalLink size={20} class={`my-auto ${ideHovered ? "w-6 ml-1" : "w-0"} transition-all duration-300`} />
-                </a>
+        <div class="flex flex-col px-2">
+            <div class="mx-auto bg-bg1 p-4 rounded-md border border-bg2 my-4">
+                <p class="text-xl whitespace-pre-wrap font-mono"><span class="font-bold">Example Error:<br/></span>
+<span class="text-red">[00] Error:</span> Lexing error: UnexpectedToken
+    ╭─[ examples/test.modu:1:7 ]
+    │
+  1 │ print(<span class="text-red">!</span>);
+    │       ┬
+    │       ╰── Unexpected token
+────╯</p>
             </div>
         </div>
     </div>

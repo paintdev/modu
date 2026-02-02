@@ -9,6 +9,19 @@ enum Postfix {
     Index(SpannedExpr),
 }
 
+fn report_error(report: Report<'_, (&str, std::ops::Range<usize>)>, source_name: &str, code: &str) {
+    #[cfg(target_arch = "wasm32")]
+    {
+        let mut writer = crate::WasmWriter;
+        let _ = report.write((source_name, Source::from(code)), &mut writer);
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let _ = report.eprint((source_name, Source::from(code)));
+    }
+}
+
 fn parser<'src>() -> impl Parser<
     'src, 
     &'src [(Token, Span)],
@@ -345,7 +358,7 @@ pub fn parse(input: &str, filename: &str, context: &mut HashMap<String, Expr>) {
     let tokens = match lex(input) {
         Ok(toks) => toks,
         Err(e) => {
-            Report::build(ReportKind::Error, (filename, e.1.into_range()))
+            let report = Report::build(ReportKind::Error, (filename, e.1.into_range()))
                 .with_code(0)
                 .with_message(format!("Lexing error: {:?}", e.0))
                 .with_label(
@@ -353,9 +366,9 @@ pub fn parse(input: &str, filename: &str, context: &mut HashMap<String, Expr>) {
                         .with_color(Color::Red)
                         .with_message(format!("{}", e.0)),
                 )
-                .finish()
-                .print((filename, Source::from(input)))
-                .unwrap();
+                .finish();
+            
+            report_error(report, filename, input);
 
             return;
         }
@@ -373,7 +386,7 @@ pub fn parse(input: &str, filename: &str, context: &mut HashMap<String, Expr>) {
                 match &expr.node {
                     // should never be an return in the top-level
                     Expr::Return(_) => {
-                        Report::build(ReportKind::Error, (filename, expr.span.into_range()))
+                        let report = Report::build(ReportKind::Error, (filename, expr.span.into_range()))
                             .with_code(3)
                             .with_message("Return statement not allowed in top-level")
                             .with_label(
@@ -382,15 +395,15 @@ pub fn parse(input: &str, filename: &str, context: &mut HashMap<String, Expr>) {
                                     .with_message("unexpected return statement"),
                             )
                             .with_help("Return statements can only be used inside functions")
-                            .finish()
-                            .print((filename, Source::from(input)))
-                            .unwrap();
+                            .finish();
+                        
+                        report_error(report, filename, input);
 
                         return;
                     }
 
                     Expr::Break => {
-                        Report::build(ReportKind::Error, (filename, expr.span.into_range()))
+                        let report = Report::build(ReportKind::Error, (filename, expr.span.into_range()))
                             .with_code(4)
                             .with_message("Break statement not allowed in top-level")
                             .with_label(
@@ -399,15 +412,15 @@ pub fn parse(input: &str, filename: &str, context: &mut HashMap<String, Expr>) {
                                     .with_message("unexpected break statement"),
                             )
                             .with_help("Break statements can only be used inside loops")
-                            .finish()
-                            .print((filename, Source::from(input)))
-                            .unwrap();
+                            .finish();
+                        
+                        report_error(report, filename, input);
 
                         return;
                     }
 
                     Expr::Continue => {
-                        Report::build(ReportKind::Error, (filename, expr.span.into_range()))
+                        let report = Report::build(ReportKind::Error, (filename, expr.span.into_range()))
                             .with_code(5)
                             .with_message("Continue statement not allowed in top-level")
                             .with_label(
@@ -416,9 +429,9 @@ pub fn parse(input: &str, filename: &str, context: &mut HashMap<String, Expr>) {
                                     .with_message("unexpected continue statement"),
                             )
                             .with_help("Continue statements can only be used inside loops")
-                            .finish()
-                            .print((filename, Source::from(input)))
-                            .unwrap();
+                            .finish();
+                        
+                        report_error(report, filename, input);
 
                         return;
                     }
@@ -432,7 +445,7 @@ pub fn parse(input: &str, filename: &str, context: &mut HashMap<String, Expr>) {
                     }
 
                     Err(e) => {
-                        Report::build(ReportKind::Error, (filename, e.span.into_range()))
+                        let report = Report::build(ReportKind::Error, (filename, e.span.into_range()))
                             .with_code(1)
                             .with_message(format!("Evaluation error: {}", e.message))
                             .with_label(
@@ -440,9 +453,9 @@ pub fn parse(input: &str, filename: &str, context: &mut HashMap<String, Expr>) {
                                     .with_color(Color::Red)
                                     .with_message(format!("{}", e.message_short)),
                             )
-                            .finish()
-                            .print((filename, Source::from(input)))
-                            .unwrap();
+                            .finish();
+                        
+                        report_error(report, filename, input);
 
                         return;
                     }
@@ -468,7 +481,7 @@ pub fn parse(input: &str, filename: &str, context: &mut HashMap<String, Expr>) {
                             }
                         };
 
-                        Report::build(ReportKind::Error, (filename, error_span.into_range()))
+                        let report = Report::build(ReportKind::Error, (filename, error_span.into_range()))
                             .with_code(2)
                             .with_message(format!("I expected {:?}, but found {}", expected, found_str))
                             .with_label(
@@ -476,22 +489,22 @@ pub fn parse(input: &str, filename: &str, context: &mut HashMap<String, Expr>) {
                                         .with_color(Color::Red)
                                         .with_message(format!("expected {:?}", expected)),
                             )
-                            .finish()
-                            .print((filename, Source::from(input)))
-                            .unwrap();
+                            .finish();
+                        
+                        report_error(report, filename, input);
                     }
     
                     _ => {
-                        Report::build(ReportKind::Error, (filename, span.into_range()))
+                        let report = Report::build(ReportKind::Error, (filename, span.into_range()))
                             .with_message(format!("{:?}", err.reason()))
                             .with_label(
                                     Label::new((filename, span.into_range()))
                                         .with_color(Color::Red)
                                         .with_message("error occurred here"),
                             )
-                            .finish()
-                            .print((filename, Source::from(input)))
-                            .unwrap();
+                            .finish();
+                        
+                        report_error(report, filename, input);
                     }
                } 
             }

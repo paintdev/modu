@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { PUBLIC_VITE_IDE_BACKEND } from "$env/static/public";
     import { Play, Download, Upload } from "lucide-svelte";
     import { basicSetup, EditorView } from "codemirror";
     import { EditorState, Compartment } from "@codemirror/state"
@@ -9,6 +8,8 @@
     import { browser } from "$app/environment";
     import { onMount } from "svelte";
     import { base } from "$app/paths";
+
+    import init, { eval_modu, modu_version } from "$lib/modu/modu_wasm.js";
 
     let language = new Compartment, tabsize = new Compartment;
     let moduVersion = "";
@@ -30,8 +31,8 @@ yap("Hello, World!");
             tabsize.of(EditorState.tabSize.of(4)),
             EditorView.theme({
                 "&": {
-                    color: "#cdd6f4",
-                    backgroundColor: "#11111b",
+                    color: "#fbg1c7",
+                    backgroundColor: "#282828",
                     fontSize: "24px",
                     height: "100%",
                 },
@@ -41,15 +42,15 @@ yap("Hello, World!");
                 },
 
                 ".cm-activeLine": {
-                    backgroundColor: "#89b4fa10",
+                    backgroundColor: "#1d202180",
                 },
 
                 ".cm-activeLineGutter" : {
-                    backgroundColor: "#89b4fa10",
+                    backgroundColor: "#28282880",
                 },
 
                 ".cm-gutters": {
-                    backgroundColor: "#181825",
+                    backgroundColor: "#1d2021",
                 },
 
             }, { dark: true }),
@@ -58,11 +59,11 @@ yap("Hello, World!");
                 { tag: tags.keyword, color: "#cba6f7" },
                 { tag: tags.atom, color: "#f38ba8" },
                 { tag: tags.escape, color: "#f5c2e7" },
-                { tag: tags.comment, color: "#9399b2" },
+                { tag: tags.comment, color: "#a89984" },
                 { tag: tags.number, color: "#fab387" },
                 { tag: tags.float, color: "#fab387" },
                 { tag: tags.operator, color: "#89dceb" },
-                { tag: tags.brace, color: "#9399b2" },
+                { tag: tags.brace, color: "#a89984" },
                 { tag: tags.bool, color: "#89b4fa" }
             ])),
         ]
@@ -70,17 +71,16 @@ yap("Hello, World!");
 
     let view;
 
-    onMount(() => {
+    onMount(async () => {
         if (browser) {
+            await init();
+            moduVersion = modu_version();
+
             view = new EditorView({
                 state,
                 parent: document.querySelector("#code"),
             });
         }
-
-        fetch(PUBLIC_VITE_IDE_BACKEND + "/")
-            .then(res => res.text())
-            .then(version => moduVersion = version.split(" ")[1]);
     });
 
     let output = "Run the code to see the output";
@@ -91,27 +91,32 @@ yap("Hello, World!");
     async function run() {
         try {
             runClicked = true;
-            output = "Running...";
 
-            const res = await fetch(PUBLIC_VITE_IDE_BACKEND + "/eval", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "text/plain",
-                },
-                body: view.state.doc.toString(),
-            });
+            const code = view.state.doc.toString();
 
-            output = (await res.text()).trim().replace(ansiRegex, "");
-
-            if (output == "") {
-                output = "No output";
+            if (code.includes("import \"http\"")) {
+                output = "Error running code: The HTTP client does currently not work on the web";
+                runClicked = false;
+                return;
+            } else if (code.includes("import \"ffi\"")) {
+                output = "Error running code: Using FFI is not possible on the web";
+                runClicked = false;
+                return;
+            } else if (code.includes("import \"os\"")) {
+                output = "Error running code: Using the OS module is not supported in the web IDE cause its running on the web";
+                runClicked = false;
+                return;
             }
+
+            let result = eval_modu(code);
+        
+            output = result.replace(ansiRegex, "");
 
             setTimeout(() => {
                 runClicked = false;
-            }, 1000);
+            }, 500);
         } catch (e) {
-            output = e.message;
+            output = "Error running code: " + e.message;
         }
     }
 
@@ -147,8 +152,8 @@ yap("Hello, World!");
 </svelte:head>
 
 <div class="flex flex-col w-full h-screen">
-    <div class="w-full border-b border-b-ctp-surface0 p-2 px-4 flex">
-        <a href={base + "/"} class="text-3xl font-bold inline-block bg-clip-text text-transparent bg-gradient-to-r from-ctp-red to-75% to-ctp-yellow">Modu</a>
+    <div class="w-full border-b border-bg1 p-2 px-4 flex">
+        <a href={base + "/"} class="text-2xl font-bold">modu</a>
         <p class="ml-2 mt-auto text-xl">{moduVersion ? `${moduVersion}` : ""}</p>
 
         <div class="ml-auto my-auto">
@@ -156,7 +161,7 @@ yap("Hello, World!");
         </div>
 
         <div class="ml-auto flex">
-            <button class={`${runClicked ? "text-ctp-green" : ""} mr-5`} on:click={run}>
+            <button class={`${runClicked ? "text-blue" : ""} mr-5`} on:click={run}>
                 <Play size={28} class="my-auto" />
             </button>
 
@@ -171,20 +176,20 @@ yap("Hello, World!");
     </div>
 
     <div class="flex p-4 h-full space-y-4 flex-col md:flex-row md:space-x-4 md:space-y-0">
-        <div class="bg-ctp-mantle w-full p-6 pt-4 h-full rounded-md flex flex-col md:w-2/3 border border-ctp-surface0">
+        <div class="bg-bg1 w-full p-6 pt-4 h-full rounded-md flex flex-col md:w-2/3 border border-bg2">
             <h1 class="text-3xl font-bold">Input</h1>
             <div id="code" class="mt-4 h-full max-h-[83vh] rounded-md"></div>
         </div>
 
-        <div class="bg-ctp-mantle w-full p-6 pt-4 h-full rounded-md flex flex-col md:w-1/3 border border-ctp-surface0">
+        <div class="bg-bg1 w-full p-6 pt-4 h-full rounded-md flex flex-col md:w-1/3 border border-bg2">
             <h1 class="text-3xl font-bold">Output</h1>
-            <pre class="p-4 mt-4 text-xl break-words whitespace-pre-wrap bg-ctp-crust h-full rounded-md">{output}</pre>
+            <pre class="px-4 py-2 mt-4 text-xl break-words whitespace-pre-wrap bg-bg h-full">{output}</pre>
         </div>
     </div>
 </div>
 
 <style>
     button {
-        @apply rounded-md my-auto text-center font-mono w-fit flex transition-all duration-300 hover:text-ctp-yellow;
+        @apply rounded-md my-auto text-center font-mono w-fit flex transition-all duration-300 hover:text-blue;
     }
 </style>
