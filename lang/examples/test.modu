@@ -6,7 +6,6 @@ let e = null;
 
 print(a);
 print("Hello, ", "world!");
-print("you like: ", input("i like: "));
 print(int("5"));
 print(str(6.7));
 print(float(6));
@@ -66,3 +65,9 @@ yap("hi");
 
 /* this is a 
    multi-line comment */
+
+fn red(string) {
+    return "\x1b[31m" + string + "\x1b[0m";
+}
+
+print(red("this should be red"));

@@ -127,13 +127,10 @@ impl std::fmt::Display for Expr {
         match self {
             Expr::Int(n) => write!(f, "{}", n),
             Expr::Float(fl) => write!(f, "{}", fl),
-            Expr::String(s) => write!(
-                f, "{}", 
-                s.replace("\\n", "\n")
-                    .replace("\\t", "\t")
-                    .replace("\\\"", "\"")
-                    .replace("\\\\", "\\")
-            ),
+            Expr::String(s) => {
+                let processed = Self::process_escape_sequences(s);
+                write!(f, "{}", processed)
+            },
             Expr::Identifier(name) => write!(f, "{}", name),
             Expr::Bool(b) => write!(f, "{}", b),
             Expr::Null => write!(f, "null"),
@@ -143,13 +140,8 @@ impl std::fmt::Display for Expr {
 
                 for (i, element) in elements.iter().enumerate() {
                     if let Expr::String(s) = &element.node {
-                        write!(
-                            f, "\"{}\"",
-                            s.replace("\\n", "\n")
-                                .replace("\\t", "\t")
-                                .replace("\\\"", "\"")
-                                .replace("\\\\", "\\")
-                        )?;
+                        let processed = Self::process_escape_sequences(s);
+                        write!(f, "\"{}\"", processed)?;
                     } else {
                         write!(f, "{}", element.node)?;
                     }
@@ -164,5 +156,45 @@ impl std::fmt::Display for Expr {
 
             _ => write!(f, "{:?}", self),
         }
+    }
+}
+
+impl Expr {
+    fn process_escape_sequences(s: &str) -> String {
+        let mut result = String::new();
+        let mut chars = s.chars();
+        
+        while let Some(ch) = chars.next() {
+            if ch == '\\' {
+                if let Some(next) = chars.next() {
+                    match next {
+                        'n' => result.push('\n'),
+                        't' => result.push('\t'),
+                        '"' => result.push('"'),
+                        '\\' => result.push('\\'),
+                        'x' => {
+                            let hex: String = chars.by_ref().take(2).collect();
+                            if let Ok(byte) = u8::from_str_radix(&hex, 16) {
+                                result.push(byte as char);
+                            } else {
+                                result.push('\\');
+                                result.push('x');
+                                result.push_str(&hex);
+                            }
+                        }
+                        _ => {
+                            result.push('\\');
+                            result.push(next);
+                        }
+                    }
+                } else {
+                    result.push('\\');
+                }
+            } else {
+                result.push(ch);
+            }
+        }
+        
+        result
     }
 }
