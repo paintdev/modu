@@ -69,7 +69,7 @@ pub enum Expr {
         body: Box<Spanned<Expr>>,
     },
 
-    // import "module" as module;
+    // import "module" as module; Ok cool but i didnt ask
     // or import "module" as *; // you can use like function() instead of module.function()
     // or import "module"; // will import as the module name
     Import {
